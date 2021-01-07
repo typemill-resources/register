@@ -1,0 +1,28 @@
+{% extends 'layouts/layoutAuth.twig' %}
+{% block title %}{{ __('Setup') }}{% endblock %}
+
+{% block content %}
+
+	{% if recaptcha_webkey %}		
+		<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+	{% endif %}
+
+	<div class="registerWrapper">
+
+		<div class="registerFormWrapper">
+
+			<header class="registerHeader">
+
+				<h1>Thank you!</h1>
+
+			</header>
+
+			<div class="registercontent">
+
+				<p>Thank you for visiting our website. You are probably a machine, although we are not totally sure about it. If you are not a machine or if you are a very clever machine, then please go back and try again.</p>
+			
+			</div>
+		</div>
+	</div>
+	
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends 'layouts/layoutAuth.twig' %}
+{% block title %}{{ __('Setup') }}{% endblock %}
+
+{% block content %}
+
+	<div class="registerWrapper">
+
+		<div class="registerFormWrapper">
+
+			<header class="registerHeader">
+
+				<h1>{{ error.title }}</h1>
+
+			</header>
+
+			<div class="registercontent">
+
+				<p>{{ error.message }}</p>
+
+				<a href="{{base_url}}">Return to the homepage</a>
+			
+			</div>
+		</div>		
+	</div>
+
+{% endblock %}

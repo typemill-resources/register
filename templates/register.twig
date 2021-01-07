@@ -1,0 +1,88 @@
+{% extends 'layouts/layoutAuth.twig' %}
+{% block title %}{{ __('Setup') }}{% endblock %}
+
+{% block content %}
+
+	{% if recaptcha_webkey %}		
+		<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+	{% endif %}
+
+	<div class="registerWrapper">
+
+		<div class="registerFormWrapper">
+
+			<header class="registerHeader">
+
+				<div class="registerProgress steps-{{ registersteps|length }}">
+					<div class="progressLine"></div>
+					<ul class="progressSteps">
+						{% for key,value in registersteps %}
+							<li class="progressStep {{ value }}">{{ loop.index }}</li>
+						{% endfor %}
+					</ul>
+				</div>
+				<h1>{{ settings.plugins.register.registerheadline|default("Register Now!") }}</h1>
+
+			</header>
+
+			<form method="POST" action="{{base_url}}/tm/register" autocomplete="off">
+
+				<fieldset class="auth">
+					<div class="formElement{{ errors.username ? ' errors' : '' }}">
+						<label for="username">{{ settings.plugins.register.labelUsername }} <abbr title="{{ __('required') }}">*</abbr></label>
+						<input type="text" name="username" value="{{ old.username }}" required>
+						{% if errors.username %}
+							<span class="error">{{ errors.username | first }}</span>
+						{% endif %}
+					</div>
+					<div class="formElement{{ errors.email ? ' errors' : '' }}">
+						<label for="email">{{ settings.plugins.register.labelEmail }} <abbr title="{{ __('required') }}">*</abbr></label>
+						<input type="text" name="email" value="{{ old.email }}" required>
+						{% if errors.email %}
+							<span class="error">{{ errors.email | first }}</span>
+						{% endif %}
+					</div>
+					<div class="formElement{{ errors.password ? ' errors' : '' }}">
+						<label for="password">{{ settings.plugins.register.labelPassword }} <abbr title="{{ __('required') }}">*</abbr></label>
+						<input type="password" name="password" required autocomplete="off">
+						{% if errors.password %}
+							<span class="error">{{ errors.password | first }}</span>
+						{% endif %}
+					</div>
+					<div class="formElement personalMail">
+						<label for="personalMail">Personal E-Mail</label>
+						<input type="text" name="personalMail">
+					</div>
+					{% if settings.plugins.register.legalcheckbox1 %}
+						<label class="control-group regular">{{ markdown(settings.plugins.register.legaltext1) }}
+							<input type="checkbox" name="legalcheckbox1"{{ settings.plugins.register.legalmandatory1 ? ' required' : '' }}>
+							<span class="checkmark"></span>
+						</label>
+					{% endif %}
+
+					{% if settings.plugins.register.legalcheckbox2 %}
+						<label class="control-group regular">{{ markdown(settings.plugins.register.legaltext2) }}
+							<input type="checkbox" name="legalcheckbox2"{{ settings.plugins.register.legalmandatory2 ? ' required' : '' }}>
+							<span class="checkmark"></span>
+						</label>
+					{% endif %}
+
+				</fieldset>
+
+				{% if settings.plugins.register.legalnotice %}
+					<p>{{ markdown(settings.plugins.register.legalnotice) }}</p>
+				{% endif %}
+
+				{% if recaptcha_webkey %}
+					<p><div class="g-recaptcha" data-sitekey="{{ recaptcha_webkey }}"></div></p>
+				{% endif %}
+
+				<input type="submit" value="{{ settings.plugins.register.labelButton }}" />
+				{{ csrf_field() | raw }}
+
+				<small><a href="{{base_url}}/tm/login">login</a><a href="{{base_url}}/tm/registeremail" class="right">request confirmation email</a></small>
+			</form>
+		</div>
+	</div>
+	
+{% endblock %}

@@ -1,0 +1,183 @@
+﻿name: Registration
+version: 1.0.0
+description: Add a public registration form under /tm/register and let users register as member.
+author: Trendschau
+homepage: https://trendschau.net
+licence: MIT
+
+settings:
+  registerheadline: Register now!
+  labelUsername: Username
+  labelEmail: E-mail
+  labelPassword: Password
+  labelButton: Register
+  welcomeheadline: Confirm Your Registration
+  welcometext: "# Congratulations! \r\n\r\n Your registration was successful and we sent you a registration e-mail. Please check your e-mail account and confirm your registration."
+  reminduser: 5
+  deleteuser: 5
+
+forms:
+  fields:
+
+    registrationform:
+      type: fieldset
+      legend: Registration Form
+      fields:
+        registerheadline:
+          type: text
+          label: Headline for the registration form
+          placeholder: Register now!
+          required: true
+
+        labelUsername:
+          type: text
+          label: Label for username input field
+          placeholder: Username
+          required: true
+
+        labelEmail:
+          type: text
+          label: Label for e-mail input-field
+          placeholder: Email
+          required: true
+
+        labelPassword:
+          type: text
+          label: Label for password input-field
+          required: true
+
+        labelButton:
+          type: text
+          label: Label for Button
+          placeholder: Register now
+          required: true
+
+    legalcheck1:
+      type: fieldset
+      legend: Legal Checkbox 1
+      fields:
+        legalcheckbox1:
+          type: checkbox
+          label: Legal Checkbox (AGB, privacy, and more)
+          checkboxlabel: Activate legal checkbox
+
+        legalmandatory1:
+          type: checkbox
+          label: Mandatory
+          checkboxlabel: Make checkbox mandatory
+
+        legaltext1:
+          type: textarea
+          label: Text for legal checkbox (use markdown)
+
+    legalcheck2:
+      type: fieldset
+      legend: Legal Checkbox 2
+      fields:
+        legalcheckbox2:
+          type: checkbox
+          label: Legal Checkbox (AGB, privacy, and more)
+          checkboxlabel: Activate legal checkbox
+
+        legalmandatory2:
+          type: checkbox
+          label: Mandatory
+          checkboxlabel: Make checkbox mandatory
+
+        legaltext2:
+          type: textarea
+          label: Text for legal checkbox (use markdown)
+
+    legalcheck3:
+      type: fieldset
+      legend: Legal Notice
+      fields:
+        legalnotice:
+          type: textarea
+          rows: 5
+          label: Optional Text Above Button (use markdown)
+          placeholder: Add your legal text or other hints here
+
+    googlerecaptcha:
+      type: fieldset
+      legend: Google Recaptcha
+      fields:
+        recaptcha:
+          type: checkbox
+          label: Recaptcha
+          checkboxlabel: Activate Google Recaptcha
+
+        recaptcha_secretkey:
+          type: text
+          label: Recaptcha Secret Key
+          description: The secret key is mandatory if you activate the recaptcha field
+          help: You can get a secret key from the recaptcha website
+
+        recaptcha_webkey:
+          type: text
+          label: Recaptcha Website Key
+          description: The website key is mandatory if you activate the recaptcha field
+          help: You can get a website key from the recaptcha website
+
+    confirmationmail:
+      type: fieldset
+      legend: Confirmation Mail (double opt-in)
+      fields:
+        reminduser:
+          type: number
+          label: Remind user after days
+          placeholder: 5
+          description: We will send the confirmation e-mail to unconfirmed users again after X days
+          required: true
+        deleteuser:
+          type: number
+          label: Delete user after days
+          placeholder: 5
+          description: We will delete unconfirmed users after X days
+          required: true
+        mailreplyto:
+          type: email
+          label: Reply email
+          placeholder: no-reply@yourmail.net
+          description: The e-mail adress in case user replies to the confirmation mail
+          required: true
+        mailreplytoname:
+          type: text
+          label: Reply name
+          placeholder: Administrator
+          description: The name that should appear instead of the e-mail adress
+          required: true
+        mailsubject:
+          type: text
+          label: Subject line for email
+          placeholder: Confirm your registration for our website
+          required: true 
+        mailsalutation:
+          type: text
+          label: Salution in email
+          placeholder: Hello 
+          description: The username will be added automatically
+          required: true
+        mailbeforelink:
+          type: textarea
+          label: Text before confirmation link
+          placeholder: Please confirm your registration with the link below
+          required: true
+        mailafterlink:
+          type: textarea
+          label: Text after confirmation link
+          placeholder: Best regards
+
+    welcomepage:
+      type: fieldset
+      legend: Welcome Message
+      fields:
+        welcomeheadline:
+          type: text
+          label: Headline for the registration form
+          placeholder: Confirm Your Registration
+        welcometext:
+          type: textarea
+          rows: 5
+          label: Text after successful registration (use markdown)
+          placeholder: Congratulations, your registration was successful and we sent you a registration e-mail. Please check your e-mail account and confirm your registration.

@@ -1,0 +1,81 @@
+.registerWrapper{
+	max-width: 700px;
+	margin-left: auto;
+	margin-right: auto;
+	margin-top: 1em;
+}
+.registerWrapper a, .registerWrapper a:link, .registerWrapper a:visited{
+	color: lightseagreen;
+}
+.registerWrapper a:focus, .registerWrapper a:hover, .registerWrapper a:active{
+	text-decoration: none;
+}
+.registerFormWrapper{
+	width: 100%;
+	background: #fff;
+	box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+	border-radius: 3px;
+	box-sizing: border-box;	
+}
+.registerHeader{
+	width: 100%;
+	background: lightseagreen;
+	color: white;
+	padding: 1em;
+	text-align: center;
+	box-sizing: border-box;
+}
+.registerHeader h1{
+	margin: 1em 0;
+}
+.registerProgress{
+	position: relative;
+	width: 120px;
+	height: 30px;
+	margin: auto;
+}
+.registerProgress.steps-3{
+	width: 170px;
+}
+.registerProgress.steps-4{
+	width: 220px;
+}
+.progressLine{
+	position: absolute;
+	width: 100%;
+	top: 50%;
+	border-top: 2px solid white;
+	z-index: 0;
+}
+ul.progressSteps{
+	display: flex;
+	justify-content: space-between;
+	list-style: none;
+	padding: 0;
+}
+li.progressStep{
+	width: 30px;
+	height: 30px;
+	line-height: 30px;
+	text-align: center;
+	border-radius: 50%;
+	border: 2px solid white;
+	z-index: 1;
+	background: lightseagreen;
+}
+li.progressStep.active{
+	background: white;
+	color: lightseagreen;
+}
+.registerFormWrapper form, .registercontent{
+	padding: 3em;
+}
+.registerFormWrapper .formElement{
+	margin: 0 0 2em 0;
+}
+.personalMail{
+	height: 0px;
+	margin: 0 0 0 0!important;
+	padding: 0 0 0 0;
+	overflow: hidden;
+}

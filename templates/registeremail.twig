@@ -1,0 +1,52 @@
+{% extends 'layouts/layoutAuth.twig' %}
+{% block title %}{{ __('Setup') }}{% endblock %}
+
+{% block content %}
+
+	{% if recaptcha_webkey %}		
+		<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+	{% endif %}
+
+	<div class="registerWrapper">
+
+		<div class="registerFormWrapper">
+
+			<header class="registerHeader">
+
+				<h1>Send Confirmation Email Again</h1>
+
+			</header>			
+
+			<form method="POST" action="{{base_url}}/tm/registeremail" autocomplete="off">
+
+				<p>You did not receive the confirmation email for your registration? Then please check your spam folder first. To send the confirmation email again, enter your e-mail below.</p>
+
+				<fieldset class="auth">
+					<div class="formElement{{ errors.confirmationmail ? ' errors' : '' }}">
+						<label for="confirmationmail">{{ settings.plugins.register.labelConfirmationmail|default("Your Email") }} <abbr title="{{ __('required') }}">*</abbr></label>
+						<input type="email" name="confirmationmail" value="{{ old.confirmationmail }}" required>
+						{% if errors.confirmationmail %}
+							<span class="error">{{ errors.confirmationmail | first }}</span>
+						{% endif %}
+					</div>
+					<div class="formElement personalMail">
+						<label for="personalMail">Personal E-Mail</label>
+						<input type="text" name="personalMail">
+					</div>
+				</fieldset>
+
+				{% if recaptcha_webkey %}
+					<p><div class="g-recaptcha" data-sitekey="{{ recaptcha_webkey }}"></div></p>
+				{% endif %}
+
+				<input type="submit" value="{{ settings.plugins.register.labelEmailButton|default("Send confirmation email again") }}" />
+				{{ csrf_field() | raw }}
+
+				<small><a href="{{base_url}}/tm/login">login</a><a href="{{base_url}}/tm/register" class="right">register</a></small>
+						
+			</form>
+
+		</div>		
+	</div>
+
+{% endblock %}

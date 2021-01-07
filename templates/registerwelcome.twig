@@ -1,0 +1,36 @@
+{% extends 'layouts/layoutAuth.twig' %}
+{% block title %}{{ __('Setup') }}{% endblock %}
+
+{% block content %}
+
+	<div class="registerWrapper">
+
+		<div class="registerFormWrapper">
+
+			<header class="registerHeader">
+
+				<div class="registerProgress">
+					<div class="progressLine"></div>
+					<ul class="progressSteps">
+						{% for key,value in registersteps %}
+							<li class="progressStep {{ value }}">{{ loop.index }}</li>
+						{% endfor %}
+					</ul>
+				</div>
+
+				<h1>{{ settings.plugins.register.welcomeheadline|default("Confirm Your Registration") }}</h1>
+
+			</header>
+
+			<div class="registercontent">
+
+				{{ markdown(settings.plugins.register.welcometext) }}
+
+				<hr>
+				
+				<small>You can go to the <a href="{{base_url}}/tm/login">login page</a> now but you have to confirm your registration before you can login. You did not receive the confirmation mail? Then <a href="{{base_url}}/tm/registeremail">request the confirmation email again</a>.</small>
+			</div>
+		</div>
+	</div>
+
+{% endblock %}
