@@ -4,6 +4,8 @@ description: Add a public registration form under /tm/register and let users reg
 author: Trendschau
 homepage: https://trendschau.net
 licence: MIT
+paypal: https://paypal.me/typemill
+amount: 20
 
 settings:
   registerheadline: Register now!
