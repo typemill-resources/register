@@ -224,6 +224,12 @@ class Register extends Plugin
 					return $twig->render($response, '/registererror.twig', ['error' => ['title' => 'Error with Confirmation Mail', 'message' => 'Sorry, something went wrong! We created your user account, but we could not send the confirmation mail with the registration link. You cannot login without this confirmation. Please contact the owner of the website and tell him your username so he can solve the problem.']]);
 				}
 
+				# send mail to admin if feature is activated
+				if(isset($settings['plugins']['register']['notifyafterregistration']) && $settings['plugins']['register']['notifyafterregistration'])
+				{
+					$send = $this->sendRegisterNotification($settings, $userdata);
+				}
+
 				# check the next registerstep (next route-name)
 				$registersteps = $settings['registersteps'];
 				asort($registersteps);
@@ -258,8 +264,8 @@ class Register extends Plugin
 			# create body lines for html and no html mails
 			$body1 		= $settings['plugins']['register']['mailsalutation'] . " " . $username . ",";
 			$body2 		= "\n\n" . $settings['plugins']['register']['mailbeforelink'];
-			$body3 		= "\n\n" . $base_url . "/tm/registeroptin?optintoken=" . $userdata['optintoken'] . "&username=" . $userdata['username'];
-			$body3html 	= "\n\n" . "[Registration Link](" . $base_url . "/tm/registeroptin?optintoken=" . $userdata['optintoken'] . "&username=" . $userdata['username'] . ")";
+			$body3 		= "\n\n" . $base_url . "/tm/registeroptin?optintoken=" . $userdata['optintoken'] . "&username=" . $username;
+			$body3html 	= "\n\n" . "[Registration Link](" . $base_url . "/tm/registeroptin?optintoken=" . $userdata['optintoken'] . "&username=" . $username . ")";
 			$body4 		= "\n\n" . $settings['plugins']['register']['mailafterlink'];
 
 			# body without html
@@ -271,6 +277,8 @@ class Register extends Plugin
 
 			# setup and send mail
 			$mail = $this->container['mail'];
+			$mail->ClearAllRecipients();
+
 			$mail->addAdress($userdata['email']);
 			$mail->addReplyTo($settings['plugins']['register']['mailreplyto'], $settings['plugins']['register']['mailreplytoname']);
 			$mail->setSubject($settings['plugins']['register']['mailsubject']);
@@ -282,6 +290,7 @@ class Register extends Plugin
 	
 		return $send;
 	}
+
 
 	# show page to send confirmation email again
 	public function requestConfirmationEmail($request, $response, $args)
@@ -422,13 +431,13 @@ class Register extends Plugin
 				$nowFormat		= $now->format('Y-m-d');
 
 				$created->add(new \DateInterval($remind));
-				$remember 		= $created->format("Y-m-d");
+				$rememberuser 	= $created->format("Y-m-d");
 
 				$created->add(new \DateInterval($delete));
-				$delete 		= $created->format("Y-m-d");
+				$deleteuser 	= $created->format("Y-m-d");
 
 				# if you have not a single visit on your page that day, then this won't work
-				if($remember == $nowFormat)
+				if($rememberuser == $nowFormat)
 				{
 					$send = $this->sendConfirmationEmail($this->settings, $userdata, $baseUrl);
 
@@ -443,7 +452,7 @@ class Register extends Plugin
 					$userModel->updateUser($userdata);
 				}
 
-				if($delete <= $nowFormat)
+				if($deleteuser <= $nowFormat)
 				{
 					$userModel->deleteUser($user);
 				}
@@ -570,9 +579,11 @@ class Register extends Plugin
 			return $response->withRedirect($this->container['router']->pathFor('auth.show'));
 		}
 
+		$settings = $this->getSettings();
+
 		$yaml = new WriteYaml();
 
-		$optinuser = $yaml->getYaml('settings' . DIRECTORY_SEPARATOR . 'users', $params['username'] . '.yaml');
+		$optinuser = $yaml->getYaml('settings' . DIRECTORY_SEPARATOR . 'users', '_' . $params['username'] . '.yaml');
 
 		if(!$optinuser)
 		{
@@ -589,10 +600,73 @@ class Register extends Plugin
 		$optinuser['username'] 		= ($optinuser['username'][0] == '_') ? ltrim($optinuser['username'], '_') : $optinuser['username'];
 		$optinuser['optintoken'] 	= false;
 
-		$yaml->updateYaml('settings' . DIRECTORY_SEPARATOR . 'users', $params['username'] . '.yaml', $optinuser);
-		$yaml->renameFile('settings' . DIRECTORY_SEPARATOR . 'users', $params['username'] . '.yaml', $optinuser['username'] . '.yaml');
-		
+		$yaml->updateYaml('settings' . DIRECTORY_SEPARATOR . 'users', '_' . $optinuser['username'] . '.yaml', $optinuser);
+		$yaml->renameFile('settings' . DIRECTORY_SEPARATOR . 'users', '_' . $optinuser['username'] . '.yaml', $optinuser['username'] . '.yaml');
+
+		# send confirmation notification to admin, if activated
+		if(isset($settings['plugins']['register']['notifyafterconfirmation']) && $settings['plugins']['register']['notifyafterconfirmation'])
+		{
+			$send = $this->sendConfirmationNotification($settings, $optinuser['username']);
+		}
+
 		$this->container['flash']->addMessage('info', 'Your account is confirmed now. Please login.');
 		return $response->withRedirect($this->container['router']->pathFor('auth.show'));
+	}
+
+	protected function sendRegisterNotification($settings, $userdata)
+	{
+		# do not dispatch twig here because it has been dispatched already
+
+		# send confirmation mail
+		$send = false; 
+					
+		if(isset($this->container['mail']))
+		{
+			$username 	= ($userdata['username'][0] == '_') ? ltrim($userdata['username'], '_') : $userdata['username'];
+
+			# create body lines for html and no html mails
+			$body 		= "The new user " . $username . " has registered. We are waiting for the confirmation now.";
+
+			# setup and send mail
+			$mail = $this->container['mail'];
+			$mail->ClearAllRecipients();
+
+			$mail->addAdress($settings['plugins']['register']['mailreplyto']);
+			$mail->setSubject("New user: " . $username);
+			$mail->setBody($body);
+			$mail->setAltBody($body);
+
+			$send = $mail->send();
+		}
+	
+		return $send;
+	}
+
+	protected function sendConfirmationNotification($settings, $username)
+	{
+		# we have to dispatch onTwigLoaded to get the mail-function from the mail-plugin into the container
+		$this->container->dispatcher->dispatch('onTwigLoaded');
+
+		# send confirmation mail
+		$send = false; 
+					
+		if(isset($this->container['mail']))
+		{
+			# create body lines for html and no html mails
+			$body 		= "The new user " . $username . " has confirmed his account.";
+
+			# setup and send mail
+			$mail = $this->container['mail'];
+			$mail->ClearAllRecipients();
+
+			$mail->addAdress($settings['plugins']['register']['mailreplyto']);
+			$mail->setSubject("New user: " . $username);
+			$mail->setBody($body);
+			$mail->setAltBody($body);
+
+			$send = $mail->send();
+		}
+	
+		return $send;
 	}
 }

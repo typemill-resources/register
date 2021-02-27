@@ -1,5 +1,5 @@
 ﻿name: Registration
-version: 1.0.0
+version: 1.1.0
 description: Add a public registration form under /tm/register and let users register as member.
 author: Trendschau
 homepage: https://trendschau.net
@@ -125,6 +125,14 @@ forms:
       type: fieldset
       legend: Confirmation Mail (double opt-in)
       fields:
+        notifyafterregistration:
+          type: checkbox
+          label: Notification after Registration
+          checkboxlabel: Send a notification email to the reply-adress when a new user has registered
+        notifyafterconfirmation:
+          type: checkbox
+          label: Notification after Confirmation
+          checkboxlabel: Send a notification email to the reply-adress when a new account has been confirmed
         reminduser:
           type: number
           label: Remind user after days
