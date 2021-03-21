@@ -1,5 +1,5 @@
 ﻿name: Registration
-version: 1.1.0
+version: 1.2.0
 description: Add a public registration form under /tm/register and let users register as member.
 author: Trendschau
 homepage: https://trendschau.net
@@ -21,10 +21,21 @@ settings:
 forms:
   fields:
 
+    registrationroles:
+      type: fieldset
+      legend: User Roles
+      fields:
+        userrole:
+          type: select
+          label: Which role should a new user get?
+          dataset: userroles
+          description: The standard userrole is "member". A member can only edit his account. Be careful if you select other roles.
+
     registrationform:
       type: fieldset
       legend: Registration Form
       fields:
+
         registerheadline:
           type: text
           label: Headline for the registration form

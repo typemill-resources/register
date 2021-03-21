@@ -178,6 +178,12 @@ class Register extends Plugin
 		# set member as standard role for user
 		$params['userrole'] = 'member';
 
+		# check if another user role has been selected in the plugin configurations
+		if(isset($settings['plugins']['register']['userrole']) && $settings['plugins']['register']['userrole'] != '')
+		{
+			$params['userrole'] = $settings['plugins']['register']['userrole'];
+		}
+
 		# get userroles for validation
 		$userroles 		= $this->container['acl']->getRoles();
 
