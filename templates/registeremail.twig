@@ -35,16 +35,30 @@
 					</div>
 				</fieldset>
 
+				{% if settings.plugins.register.captchaoptions == 'disabled' %}
+					
+				{% elseif settings.plugins.register.captchaoptions == 'aftererror' %}
+
+					{{ captcha(old) }}
+
+				{% else %}
+
+					{{ captcha(true) }}
+
+				{% endif %}
+				
 				{% if recaptcha_webkey %}
 					<p><div class="g-recaptcha" data-sitekey="{{ recaptcha_webkey }}"></div></p>
 				{% endif %}
 
 				<input type="submit" value="{{ settings.plugins.register.labelEmailButton|default("Send confirmation email again") }}" />
 				{{ csrf_field() | raw }}
-
-				<small><a href="{{base_url}}/tm/login">login</a><a href="{{base_url}}/tm/register" class="right">register</a></small>
 						
 			</form>
+		
+			<div class="registerBottomlinks">
+				<small><a href="{{base_url}}/tm/login">login</a><a href="{{base_url}}/tm/register" class="right">register</a></small>
+			</div>
 
 		</div>		
 	</div>

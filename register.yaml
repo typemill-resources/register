@@ -1,18 +1,17 @@
-﻿name: Registration
-version: 1.2.0
-description: Add a public registration form under /tm/register and let users register as member.
-author: Trendschau
-homepage: https://trendschau.net
+name: Register
+version: 1.3.0
+description: Add a public registration form under /tm/register and let users register as member. Optionally only users with valid gumroad licence key can register.
+author: Trendschau & Andreas Zettl
+homepage: https://plugins.typemill.net/register
 licence: MIT
 paypal: https://paypal.me/typemill
 amount: 20
+dependencies: 
+  - mail
 
 settings:
   registerheadline: Register now!
-  labelUsername: Username
-  labelEmail: E-mail
-  labelPassword: Password
-  labelButton: Register
+  publicformdefinitions: "username:\r\n  type: text\r\n  label: username\r\n  placeholder: Username\r\n  required: true\r\n\r\nemail:\r\n  type: text\r\n  label: E-Mail\r\n  placeholder: Email\r\n  required: true\r\n\r\npassword:\r\n  type: password\r\n  label: Password\r\n  required: true\r\n\r\ngumroad:\r\n  type: password\r\n  label: Gumroad Licence Key\r\n  required: true"
   welcomeheadline: Confirm Your Registration
   welcometext: "# Congratulations! \r\n\r\n Your registration was successful and we sent you a registration e-mail. Please check your e-mail account and confirm your registration."
   reminduser: 5
@@ -42,120 +41,32 @@ forms:
           placeholder: Register now!
           required: true
 
-        labelUsername:
-          type: text
-          label: Label for username input field
-          placeholder: Username
-          required: true
+        registerdescription:
+          type: textarea
+          label: Description for the registration form
+          placeholder: Add your description here. If you use the gumroad option, then don't forget the link to your Gumroad product.
+          description: You can use markdown here.
 
-        labelEmail:
-          type: text
-          label: Label for e-mail input-field
-          placeholder: Email
-          required: true
+        publicformdefinitions: 
+          type: textarea
+          label: 'configure your public registration form with yaml. See <a target="_blank" href="https://plugins.typemill.net/register">examples</a>.'
 
-        labelPassword:
+        gumroadpermalink:
           type: text
-          label: Label for password input-field
-          required: true
+          label: Gumroad Permalink for your Product
+          placeholder: ABCDE
+          description: If you activate the gumroad option, then only users with a valid licence key for your product can register. Please add the gumroad input field into the public registration form with yaml.
 
-        labelButton:
+        button_label:
           type: text
-          label: Label for Button
+          label: Label for Register Button
           placeholder: Register now
           required: true
-
-    legalcheck1:
-      type: fieldset
-      legend: Legal Checkbox 1
-      fields:
-        legalcheckbox1:
-          type: checkbox
-          label: Legal Checkbox (AGB, privacy, and more)
-          checkboxlabel: Activate legal checkbox
-
-        legalmandatory1:
-          type: checkbox
-          label: Mandatory
-          checkboxlabel: Make checkbox mandatory
-
-        legaltext1:
-          type: textarea
-          label: Text for legal checkbox (use markdown)
-
-    legalcheck2:
-      type: fieldset
-      legend: Legal Checkbox 2
-      fields:
-        legalcheckbox2:
-          type: checkbox
-          label: Legal Checkbox (AGB, privacy, and more)
-          checkboxlabel: Activate legal checkbox
-
-        legalmandatory2:
-          type: checkbox
-          label: Mandatory
-          checkboxlabel: Make checkbox mandatory
-
-        legaltext2:
-          type: textarea
-          label: Text for legal checkbox (use markdown)
-
-    legalcheck3:
-      type: fieldset
-      legend: Legal Notice
-      fields:
-        legalnotice:
-          type: textarea
-          rows: 5
-          label: Optional Text Above Button (use markdown)
-          placeholder: Add your legal text or other hints here
-
-    googlerecaptcha:
-      type: fieldset
-      legend: Google Recaptcha
-      fields:
-        recaptcha:
-          type: checkbox
-          label: Recaptcha
-          checkboxlabel: Activate Google Recaptcha
-
-        recaptcha_secretkey:
-          type: text
-          label: Recaptcha Secret Key
-          description: The secret key is mandatory if you activate the recaptcha field
-          help: You can get a secret key from the recaptcha website
-
-        recaptcha_webkey:
-          type: text
-          label: Recaptcha Website Key
-          description: The website key is mandatory if you activate the recaptcha field
-          help: You can get a website key from the recaptcha website
 
     confirmationmail:
       type: fieldset
       legend: Confirmation Mail (double opt-in)
       fields:
-        notifyafterregistration:
-          type: checkbox
-          label: Notification after Registration
-          checkboxlabel: Send a notification email to the reply-adress when a new user has registered
-        notifyafterconfirmation:
-          type: checkbox
-          label: Notification after Confirmation
-          checkboxlabel: Send a notification email to the reply-adress when a new account has been confirmed
-        reminduser:
-          type: number
-          label: Remind user after days
-          placeholder: 5
-          description: We will send the confirmation e-mail to unconfirmed users again after X days
-          required: true
-        deleteuser:
-          type: number
-          label: Delete user after days
-          placeholder: 5
-          description: We will delete unconfirmed users after X days
-          required: true
         mailreplyto:
           type: email
           label: Reply email
@@ -188,6 +99,26 @@ forms:
           type: textarea
           label: Text after confirmation link
           placeholder: Best regards
+        reminduser:
+          type: number
+          label: Remind user after X days
+          placeholder: 5
+          description: We will send the confirmation e-mail to unconfirmed users again after X days
+          required: true
+        deleteuser:
+          type: number
+          label: Delete user X days after reminder
+          placeholder: 5
+          description: We will delete unconfirmed users X days after he got a reminder mail
+          required: true
+        notifyafterregistration:
+          type: checkbox
+          label: Notification after Registration
+          checkboxlabel: Send a notification email to the reply-adress when a new user has registered
+        notifyafterconfirmation:
+          type: checkbox
+          label: Notification after Confirmation
+          checkboxlabel: Send a notification email to the reply-adress when a new account has been confirmed
 
     welcomepage:
       type: fieldset
@@ -202,3 +133,66 @@ forms:
           rows: 5
           label: Text after successful registration (use markdown)
           placeholder: Congratulations, your registration was successful and we sent you a registration e-mail. Please check your e-mail account and confirm your registration.
+
+    phpcaptcha:
+      type: fieldset
+      legend: Build in Captcha (with image)
+      fields:
+        captchaoptions:
+          type: radio
+          label: When should the captcha appear?
+          options:
+            standard: Show on page load (standard)
+            aftererror: Show after first wrong input
+            disabled: Disable
+
+    googlecaptcha:
+      type: fieldset
+      legend: Configure Google Recaptcha
+      fields:
+        recaptcha:
+          type: checkbox
+          label: Google Recaptcha Integration
+          checkboxlabel: Activate Recaptcha
+        recaptcha_webkey:
+          type: text
+          label: Recaptcha Website Key
+          help: Add the recaptcha website key here. You can get the key from the recaptcha website.
+          description: The website key is mandatory if you activate the recaptcha field
+        recaptcha_secretkey:
+          type: text
+          label: Recaptcha Secret Key
+          help: Add the recaptcha secret key here. You can get the key from the recaptcha website.
+          description: The secret key is mandatory if you activate the recaptcha field
+
+public:
+  fields:
+
+    username:
+      type: text
+      label: Your Username
+      required: true
+      class: 'tm-input'
+
+    email:
+      type: email
+      label: Your Email
+      required: true
+      class: 'tm-input'
+
+    password:
+      type: password
+      label: Your Password
+      required: true
+      class: 'tm-input'
+
+    gumroad:
+      type: password 
+      label: Your Gumroad Licence Key 
+      required: true 
+      class: 'tm-input'
+      description: 'Please purchase the product on gumroad to get a licence key.'
+
+    notice:
+      type: paragraph
+      value: This is my paragraph value

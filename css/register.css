@@ -73,9 +73,23 @@ li.progressStep.active{
 .registerFormWrapper .formElement{
 	margin: 0 0 2em 0;
 }
+.registerFormWrapper .card p{
+	margin-top: 0;
+	margin-bottom: 0;
+}
+.registerFormWrapper .card input[type="submit"]{
+	margin: 26px 0 0;
+}
+.cardField input, .cardField select, .cardField textarea{
+	border: 1px solid #eee;
+    background: #f9f8f6;
+}
 .personalMail{
 	height: 0px;
 	margin: 0 0 0 0!important;
 	padding: 0 0 0 0;
 	overflow: hidden;
+}
+.registerBottomlinks{
+	padding: 0 4em 4em;
 }

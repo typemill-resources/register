@@ -3,10 +3,6 @@
 
 {% block content %}
 
-	{% if recaptcha_webkey %}		
-		<script src="https://www.google.com/recaptcha/api.js" async defer></script>
-	{% endif %}
-
 	<div class="registerWrapper">
 
 		<div class="registerFormWrapper">
@@ -19,8 +15,9 @@
 
 			<div class="registercontent">
 
-				<p>Thank you for visiting our website. You are probably a machine, although we are not totally sure about it. If you are not a machine or if you are a very clever machine, then please go back and try again.</p>
-			
+				<p>Thank you for visiting our website. Something looks suspicious for us, for example your email or some other information that you submitted. If you think that everything is fine, then please go back and try again.</p>
+				
+				<a href="{{ base_url }}">home</a>
 			</div>
 		</div>
 	</div>
