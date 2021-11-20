@@ -131,3 +131,5 @@ hint:
   type: paragraph
   value: With your registration, you automatically accept our [Terms and conditions](https://yoursite.com/terms) 
 ```
+
+That is the whole magic, and yes, this is flexible as hell! Again, just check the [documentation](https://typemill.net/forms/field-overview) and create your own special registration form if you want.
