@@ -70,7 +70,7 @@ gumroad:
 Question: OK, looks nice, but I want to translate the labels for each field.  
 Answer: No problem, just change the text for the label, for example from "label: username" to "label: Nutzername".
 Question: But I don't need the field for gumroad.  
-Answer: No problem again, simply delete it from the YAML definition!
+Answer: No problem again, simply delete it from the YAML definition!  
 Question: But I need a checkbox for the user so he can agree to my terms and conditions. 
 Answer: And again no problem, you can simply define it like this:
 
