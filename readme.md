@@ -31,9 +31,9 @@ To install the register plugin, simply download and unzip the plugin-folder, the
 * Check for existing usernames and emails.
 * Check against burner-mails
 
-## Registration Fields
+## Public Registration Form
 
-You can define an individual registration form in the plugin settings with YAML.
+You can define an individual public registration form in the plugin settings with YAML.
 
 Never heared about YAML? Don't worry! It is super simple and you do not have to code anything. Just copy and paste some fields from the [documentation](https://typemill.net/forms/field-overview) and change the definitions like you want. 
 
