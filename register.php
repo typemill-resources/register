@@ -203,15 +203,15 @@ class Register extends Plugin
 
 				$context = stream_context_create($options);
 
-				$gumroad_response = file_get_contents('https://dev.to/api/articles', false, $context);
+				$gumroad_response = file_get_contents('https://api.gumroad.com/v2/licenses/verify', false, $context);
 
 				$gumroad_result_json = json_decode($gumroad_response,true);
 
-				if($gumroad_result_json->success != 'true')
+				if(!isset($gumroad_result_json['success']) OR $gumroad_result_json['success'] != 'true')
 				{
 					$this->container['flash']->addMessage('error', 'Incorrect Gumroad License Key');
 					return $response->withRedirect($this->container['router']->pathFor('register.show'));
-				}				
+				}
 			}		
 		}
 
