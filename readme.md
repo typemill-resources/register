@@ -1,12 +1,14 @@
 # Register Plugin
 
-The plugin adds a public registration form with double opt in to your Typemill Website (/tm/register). You can optionally activate a gumroad licence for selling access. It requires the email plugin to work.
+The plugin adds a public registration form with double opt in to your Typemill Website (/tm/register). You can optionally activate a gumroad licence for selling access. It requires the email plugin to work. Written by [trendschau.net](https://trendschau.net) (Sebastian Schürmanns) and [Andreas Zettl](https://azettl.net).
 
 ## How it works 
 
 Before you install the register plugin, please install and configure the [mail plugin](https://plugins.typemill.net/mail). 
 
 To install the register plugin, simply download and unzip the plugin-folder, then upload the files to the plugin folder of your Typemill installation and fill out the forms in the plugin settings. After that you can reach the public registration form with the path /tm/register.
+
+![Screenshot of the register form](media/live/register-1.png){loading="lazy" .center}
 
 ## Registration Features
 
@@ -65,15 +67,14 @@ gumroad:
   required: true 
 ```
 
-!! DO NOT DELETE OR RENAME THE FIELDS "username", "email" or "password". They are required for the functionality of the register plugin.
+! DO NOT DELETE OR RENAME THE FIELDS "username", "email" or "password". They are required for the functionality of the register plugin.
 
-Question: OK, looks nice, but I want to translate the labels for each field.  
-Answer: No problem, just change the text for the label, for example from "label: username" to "label: Nutzername".
-Question: But I don't need the field for gumroad.  
-Answer: No problem again, simply delete it from the YAML definition!  
-Question: But I need a checkbox for the user so he can agree to my terms and conditions.  
-Answer: And again no problem, you can simply define it like this:
-
+**Question**: OK, looks nice, but I want to translate the labels for each field.  
+**Answer**: No problem, just change the text for the label, for example from "label: username" to "label: Nutzername".  
+**Question**: But I don't need the field for gumroad.  
+**Answer**: No problem again, simply delete it from the YAML definition!  
+**Question**: But I need a checkbox for the user so he can agree to my terms and conditions.  
+**Answer**: And again no problem, you can simply define it like this:
 
 ```
 username:
@@ -100,8 +101,8 @@ legal:
   required: true
 ```
 
-Question: Ahh, that is easy. Can I also add another legal hint without a checkbox? Just Text?  
-Answer: Yes...
+**Question**: Ahh, that is easy. Can I also add another legal hint without a checkbox? Just Text?  
+**Answer**: Yes...
 
 ```
 username:
@@ -133,3 +134,29 @@ hint:
 ```
 
 That is the whole magic, and yes, this is flexible as hell! Again, just check the [documentation](https://typemill.net/forms/field-overview) and create your own special registration form if you want.
+
+
+## Updates
+
+### Version 1.3.0
+
+* Switch to publicformdefinitions so the admin can define his own forms.
+* Switch to new public forms logic with route and validation.
+* Switch to new security-logic with optional build-in-captcha and google recaptcha.
+* Add a gumroad licence check.
+* Check burner email accounts.
+* Send email domain to admin so he can check spam better.
+* Create a tmp_user in session so other plugins (e.g. subscription) know the username even if user is not logged in yet.
+* Deleted recaptcha from honeypot site.
+* Fixed logic for registersteps, so you can hack before and after each step now.
+* Fixed progress bar for welcome page
+
+### Version 1.2.0
+
+* Choose the role for new registered users (requires Typemill Version 1.4.5)
+
+### Version 1.1.0
+
+* Added an option to notify the admin when a new user has registered.
+* Added an option to notify the admin when the user has confirmed his account.
+* Removed the _ from the username in the login form after successful optin.
