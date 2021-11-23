@@ -656,8 +656,7 @@ class Register extends Plugin
 					$userModel->deleteUser($user);
 
 					# dispatch the deletion so subscriptions can be deleted
-					$this->container->dispatcher->dispatch('onUserDeleted', new OnUserDeleted($user));
-
+					$this->container->dispatcher->dispatch('onUserDeleted', new OnUserDeleted($userdata));
 				}
 			}
 		}
