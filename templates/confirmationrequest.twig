@@ -1,0 +1,88 @@
+{% extends 'layouts/layoutAuth.twig' %}
+{% block title %}{{ settings.plugins.register.registerheadline|default("Register Now!") }}{% endblock %}
+
+{% block content %}
+
+	{% if recaptcha_webkey %}		
+		<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+	{% endif %}
+
+	<div class="lg:flex-row flex flex-col-reverse justify-end">
+		
+		<div class="lg:w-1/2 bg-teal-600 text-white min-h-screen flex justify-center items-center">
+			<div class="max-w-md content-center">
+
+				<div class="registerForm">
+	
+					<form method="POST" action="{{ url_for('register.sendemail') }}" autocomplete="off">
+
+						<fieldset>
+
+							<div class="my-2 {{ errors.confirmationmail ? ' errors' : '' }}">
+								<label for="confirmationmail">{{ settings.plugins.register.confirmationrequestlabel|default("Your E-Mail") }} <abbr title="{{ translate('required') }}">*</abbr></label>
+								<input 
+									type="email" 
+									name="confirmationmail" 
+									value="{{ old.confirmationmail }}" 
+									class="form-control block w-full px-3 py-1.5 text-base font-normal text-gray-700 bg-white bg-clip-padding border border-solid border-gray-300 transition ease-in-out m-0 focus:text-gray-700 focus:bg-white focus:border-blue-600 focus:outline-none"
+								required>
+								{% if errors.confirmationmail %}
+									<span class="">{{ errors.confirmationmail|first }}</span>
+								{% endif %}
+							</div>
+
+							<div class="personal-mail hidden">
+								<label>Personal Mail</label>
+								<input type="text" name="personal-honey-mail">
+							</div>
+
+						</fieldset>
+
+						{% if settings.plugins.register.captchaoptions == 'standard' %}
+
+							{{ captcha(true) }}
+							
+						{% elseif settings.plugins.register.captchaoptions == 'aftererror' %}
+
+							{{ captcha(old) }}
+
+						{% else %}
+
+							{{ clearcaptcha() }}
+
+						{% endif %}
+
+						<input 
+							type="submit" 
+							value="{{ settings.plugins.register.confirmationrequestbutton|default('Resend Confirmation E-Mail') }}" 
+                      		class="block w-full mt-6 px-3 py-3 border-0 font-medium text-xs leading-tight uppercase border-2 border-stone-50 text-stone-50 pointer hover:bg-stone-50 hover:text-stone-800 cursor-pointer focus:outline-none focus:ring-0 transition duration-100 ease-in-out"
+						/>
+						
+						{% if recaptcha_webkey %}
+							<p><div class="g-recaptcha" data-sitekey="{{ recaptcha_webkey }}"></div></p>
+						{% endif %}
+								
+					</form>
+	
+				</div>
+
+			</div>
+		</div>
+		
+		<div class="lg:w-1/2 lg:bg-white lg:text-black p-5 bg-teal-600 text-white border-b border-white content-center flex justify-center items-center">
+			<div class="max-w-md content-center">
+
+				<h2 class="text-4xl py-5">{{ settings.plugins.register.confirmationrequestheadline|default('Request Confirmation E-Mail') }}</h2>
+
+				<p>{{ settings.plugins.register.confirmationrequesttext|default('You did not receive the confirmation email for your registration? Then please check your spam folder first. To send the confirmation email again, enter your e-mail into the form.') }}</p>
+
+				<p class="text-s py-5">
+					<a class="underline" href="{{ url_for('auth.show')}}">{{ translate('Login') }}</a> | 
+					<a class="underline" href="{{ url_for('register.show')}}">{{ settings.plugins.register.registerheadline|default("Register Now!") }}</a>
+				</p>
+
+			</div>
+		</div>
+	
+	</div>
+{% endblock %}

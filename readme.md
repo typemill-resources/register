@@ -1,6 +1,8 @@
 # Register Plugin
 
-The plugin adds a public registration form with double opt in to your Typemill Website (/tm/register). You can optionally activate a gumroad licence for selling access. It requires the email plugin to work. Written by [trendschau.net](https://trendschau.net) (Sebastian Schürmanns) and [Andreas Zettl](https://azettl.net).
+The plugin adds a public registration form with double opt in to your Typemill Website (/tm/register). You can optionally activate a gumroad licence for selling access. It requires the email plugin to work. To utilize this plugin, ensure you have a [MAKER-license](https://typemill.net/license/buy).
+
+The plugin has been written by [trendschau.net](https://trendschau.net) (Sebastian Schürmanns). Gumroad feature added by [Andreas Zettl](https://azettl.net).
 
 ## How it works 
 
@@ -25,10 +27,8 @@ To install the register plugin, simply download and unzip the plugin-folder, the
 ## Security Features
 
 * Double opt in. User has no access to his account without confirmation.
-* Standard CSRF-Protection
 * Standard honeypot field for simple spam protection.
 * Optionally activate a captcha field (build-in captcha).
-* Optionally activate a google recaptcha field.
 * Backend input validation.
 * Check for existing usernames and emails.
 * Check against burner-mails
@@ -137,6 +137,13 @@ That is the whole magic, and yes, this is flexible as hell! Again, just check th
 
 
 ## Updates
+
+### Version 2.0.0
+
+* Updated and deeply refactored for version 2.0.0 of Typemill
+* Removed registration steps to simplify the process.
+* Added all pre-defined text to settings.
+* Added maker-license. 
 
 ### Version 1.3.0
 

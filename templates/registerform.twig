@@ -1,0 +1,35 @@
+{% extends 'layouts/layoutAuth.twig' %}
+{% block title %}{{ settings.plugins.register.registerheadline|default("Register Now!") }}{% endblock %}
+
+{% block content %}
+
+	<div class="lg:flex-row flex flex-col-reverse justify-end">
+		
+		<div class="lg:w-1/2 bg-teal-600 text-white min-h-screen flex justify-center items-center">
+			<div class="max-w-md content-center">
+
+				<div class="registerForm">
+					{{ registerform }}
+				</div>
+
+			</div>
+		</div>
+		
+		<div class="lg:w-1/2 lg:bg-white lg:text-black p-5 bg-teal-600 text-white border-b border-white content-center flex justify-center items-center">
+			<div class="max-w-md content-center">
+
+				<h2 class="text-4xl py-5">{{ settings.plugins.register.registerheadline|default("Register Now!") }}</h2>
+
+				{% if settings.plugins.register.registerdescription %}
+					<p>{{ settings.plugins.register.registerdescription }}</p>
+				{% endif %}
+
+				<p class="text-s py-5">
+					<a class="underline" href="{{ url_for('auth.show')}}">{{ translate('Login') }}</a> | 
+					<a class="underline" href="{{ url_for('register.requestemail')}}">{{ settings.plugins.register.confirmationrequestheadline|default('Request Confirmation E-Mail') }}</a>
+				</p>
+			</div>
+		</div>
+	
+	</div>
+{% endblock %}

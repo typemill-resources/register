@@ -2,62 +2,86 @@
 
 namespace Plugins\register;
 
-use \Typemill\Plugin;
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Message\ResponseInterface as Response;
+use Typemill\Plugin;
 use Typemill\Models\Validation;
 use Typemill\Models\User;
-use Typemill\Models\Write;
-use Typemill\Models\WriteYaml;
+use Typemill\Models\StorageWrapper;
+use Typemill\Events\OnTwigLoaded;
 use Typemill\Events\OnUserConfirmed;
 use Typemill\Events\OnUserDeleted;
 
-
 class Register extends Plugin
-{	
+{
 	protected $settings;
+
+	public static function setPremiumLicence()
+	{
+		return 'MAKER';
+	}
 
     public static function getSubscribedEvents()
     {
 		return array(
-			'onSettingsLoaded'			=> 'onSettingsLoaded',
-			'onPageReady'				=> 'onPageReady',
+			'onPageReady'		=> 'onPageReady'
 		);
     }
 
 	public static function addNewRoutes()
 	{
+
 		return [
-			['httpMethod' => 'get', 'route' => '/tm/register', 'class' => 'Plugins\Register\Register:showRegistrationForm', 'name' => 'register.show'],
-			['httpMethod' => 'post', 'route' => '/tm/register', 'class' => 'Plugins\Register\Register:createUser', 'name' => 'register.create'],
-			['httpMethod' => 'get', 'route' => '/tm/registerwelcome', 'class' => 'Plugins\Register\Register:showWelcome', 'name' => 'register.welcome'],
-			['httpMethod' => 'get', 'route' => '/tm/registeroptin', 'class' => 'Plugins\Register\Register:optin', 'name' => 'register.optin'],
-			['httpMethod' => 'get', 'route' => '/tm/registeremail', 'class' => 'Plugins\Register\Register:requestConfirmationEmail', 'name' => 'register.requestemail'],
-			['httpMethod' => 'post', 'route' => '/tm/registeremail', 'class' => 'Plugins\Register\Register:sendConfirmationEmailAgain', 'name' => 'register.sendemail'],
+			[
+				'httpMethod' 	=> 'get', 
+				'route' 		=> '/tm/register', 
+				'class' 		=> 'Plugins\Register\Register:showRegistrationForm', 
+				'name' 			=> 'register.show'
+			],
+			[
+				'httpMethod' 	=> 'post', 
+				'route' 		=> '/tm/register', 
+				'class' 		=> 'Plugins\Register\Register:createUser', 
+				'name' 			=> 'register.create'
+			],
+			[
+				'httpMethod' 	=> 'get', 
+				'route' 		=> '/tm/registerwelcome', 
+				'class' 		=> 'Plugins\Register\Register:showWelcome', 
+				'name' 			=> 'register.welcome'
+			],
+			[
+				'httpMethod' 	=> 'get', 
+				'route' 		=> '/tm/registeroptin', 
+				'class' 		=> 'Plugins\Register\Register:optin', 
+				'name' 			=> 'register.optin'
+			],
+			[
+				'httpMethod' 	=> 'get', 
+				'route' 		=> '/tm/registeremail', 
+				'class' 		=> 'Plugins\Register\Register:requestConfirmationEmail', 
+				'name' 			=> 'register.requestemail'
+			],
+			[
+				'httpMethod' 	=> 'post', 
+				'route' 		=> '/tm/registeremail', 
+				'class' 		=> 'Plugins\Register\Register:sendConfirmationEmailAgain', 
+				'name' 			=> 'register.sendemail'
+			],
 		];
 	}
-
-	# add the two registration pages to the registersteps
-	public function onSettingsLoaded($settings)
-	{
-		# get settings
-		$this->settings = $this->container->get('settings');
-
-		$registersteps = isset($this->settings['registersteps']) ? $this->settings['registersteps'] : [];
-
-		# add the route name as the second step
-		$registersteps['register.show'] = 1;
-		$registersteps['register.welcome'] = 10;
-
-		# update the settings
-		$this->container->get('settings')->replace(['registersteps' => $registersteps]);
-	}
-
 
 	# read last cache time and trigger functions once a day
 	public function onPageReady()
 	{
-		$write 		= new Write();
+		$storage = new StorageWrapper('\Typemill\Models\Storage');
+		if($storage->timeoutIsOver('registercheck', 60))
+		{
+			$this->checkRegisteredUsers($this->urlinfo['baseurl']);
+		}
 
-		$now 		= new \DateTime('NOW');
+/*
+		$now 			= new \DateTime('NOW');
 
 		# last update is stored in register.txt
 		$lastRegisterCheck 	= $write->getFile('cache', 'lastRegister.txt');
@@ -80,79 +104,87 @@ class Register extends Plugin
 
 			$this->checkRegisteredUsers($this->container->assets->baseUrl);
 		}
+*/
 	}
 
 	# show the registration form
-	public function showRegistrationForm($request, $response, $args)
+	public function showRegistrationForm(Request $request, Response $response, $args)
 	{
-		# redirect if logged in
-		if(isset($_SESSION['user']))
-		{
-			return $this->container['response']->withRedirect($this->container['router']->pathFor('user.account'));
+		$settings = $this->getSettings();
+
+		$authenticated = ( 
+				(isset($_SESSION['username'])) && 
+				(isset($_SESSION['login']))
+			)
+			? true : false;
+
+		if($authenticated)
+		{			
+			$router = $this->container->get('routeParser');
+
+			return $response->withHeader('Location', $router->urlFor('user.account'))->withStatus(302);
 		}
 
 		$this->addCSS('/register/css/register.css');
 
-		$twig   = $this->getTwig();  // ge the twig-object
-		$loader = $twig->getLoader();  // get the twig-template-loader	
-		$loader->addPath(__DIR__ . '/templates');
-
-		$settings = $this->getSettings();
-
 		# get the public forms for the plugin
-		$registerform = $this->generateForm('register', 'register.create');
+		$registerform = $this->generateForm('register.create');
 
-		# get the registersteps, sort them by value (order), add class active or inactive 
-		$registersteps = $settings['registersteps'];
-		asort($registersteps);
-		$class = 'active';
-		foreach($registersteps as $key => $step)
-		{
-			$registersteps[$key] = $class;
-			if($key == 'register.show'){ $class = 'inactive'; }
-		}
+		$twig   = $this->getTwig();
+		$loader = $twig->getLoader();	
+		$loader->addPath(__DIR__ . '/templates', 'register');		
 
-		return $twig->render($response, '/register.twig', ['settings' => $settings, 'registerform' => $registerform, 'registersteps' => $registersteps, ]);
+	    return $twig->render($response, '@register/registerform.twig', [
+			'settings' 			=> $settings, 
+			'registerform' 		=> $registerform, 
+	    ]);
 	}
 
 	# create a new user
-	public function createUser($request, $response, $args)
-	{		
-		$params = $this->validateParams($request->getParams());
+	public function createUser(Request $request, Response $response, $args)
+	{
+		$params = $request->getParsedBody();
+		$params = $this->validateParams($params);
+
+		$router = $this->container->get('routeParser');
+		$flash 	= $this->container->get('flash');
 
 		if(!$params)
 		{
-			return $response->withRedirect($this->container['router']->pathFor('register.show'));
+			return $response->withHeader('Location', $router->urlFor('register.show'))->withStatus(302);
 		}
 
 		# username, email and password are required, make sure they are there and correctly defined in plugin
-		if(!isset($params['username']) OR !isset($params['email']) OR !isset($params['password']))
+		if(
+			!isset($params['username']) OR 
+			!isset($params['email']) OR 
+			!isset($params['password'])
+		)
 		{
-			$this->container->flash->addMessage('error', 'The fields username, email and password are required. Maybe the plugin is misconfigured.');
-			return $response->withRedirect($this->container['router']->pathFor('register.show'));
+			$flash->addMessage('error', 'The fields username, email and password are required. Maybe the plugin is misconfigured.');
+			return $response->withHeader('Location', $router->urlFor('register.show'))->withStatus(302);
 		}
 
 		if($this->isBurnerEmail($params['email']))
 		{
-			return $response->withRedirect($this->container['router']->pathFor('home'));
+			return $response->withHeader('Location', $router->urlFor('home'))->withStatus(302);
 		}
 
-		$settings 		= $this->getSettings();
-		$uri 			= $request->getUri()->withUserInfo('');
-		$base_url		= $uri->getBaseUrl();
-		$validate 		= new Validation();
-		$user			= new User();
+		$pluginSettings 	= $this->getPluginSettings();
+		$base_url			= $this->urlinfo['baseurl'];
+		$validate 			= new Validation();
+		$user				= new User();
 
 		# check gumroad license
-		if(isset($settings['plugins']['register']['gumroadpermalink']) && $settings['plugins']['register']['gumroadpermalink'] != '')
+		if(isset($pluginSettings['gumroadpermalink']) && $pluginSettings['gumroadpermalink'] != '')
 		{
 			if(!isset($params['gumroad']) OR $params['gumroad'] == '')
 			{
-				$this->container['flash']->addMessage('error', 'Missing Gumroad License Key');
-				return $response->withRedirect($this->container['router']->pathFor('register.show'));
+				$flash->addMessage('error', 'Missing Gumroad License Key');
+				return $response->withHeader('Location', $router->urlFor('register.show'))->withStatus(302);
 			}
 
-		    if  (in_array  ('curl', get_loaded_extensions()))
+		    if(in_array('curl', get_loaded_extensions()))
 		    {
 				$gumroad_curl = curl_init();
 
@@ -162,7 +194,7 @@ class Register extends Plugin
 					$gumroad_curl, 
 					CURLOPT_POSTFIELDS,
 					"product_permalink=" 
-						. $settings['plugins']['register']['gumroadpermalink'] 
+						. $pluginSettings['gumroadpermalink'] 
 						. "&license_key=" . $params['gumroad']
 				);
 
@@ -174,9 +206,10 @@ class Register extends Plugin
 
 				$gumroad_result_json = json_decode($gumroad_curl_result);
 
-				if($gumroad_result_json->success != 'true'){
-					$this->container['flash']->addMessage('error', 'Incorrect Gumroad License Key');
-					return $response->withRedirect($this->container['router']->pathFor('register.show'));
+				if($gumroad_result_json->success != 'true')
+				{
+					$flash->addMessage('error', 'Incorrect Gumroad License Key');
+					return $response->withHeader('Location', $router->urlFor('register.show'))->withStatus(302);			
 				}
 		    }
 		    else
@@ -185,7 +218,7 @@ class Register extends Plugin
 
 				$postdata = http_build_query(
 					array(
-						'product_permalink' => $settings['plugins']['register']['gumroadpermalink'],
+						'product_permalink' => $pluginSettings['gumroadpermalink'],
 						'license_key' => $params['gumroad']
 					)
 				);
@@ -209,8 +242,8 @@ class Register extends Plugin
 
 				if(!isset($gumroad_result_json['success']) OR $gumroad_result_json['success'] != 'true')
 				{
-					$this->container['flash']->addMessage('error', 'Incorrect Gumroad License Key');
-					return $response->withRedirect($this->container['router']->pathFor('register.show'));
+					$flash->addMessage('error', 'Incorrect Gumroad License Key');
+					return $response->withHeader('Location', $router->urlFor('register.show'))->withStatus(302);			
 				}
 			}		
 		}
@@ -219,97 +252,91 @@ class Register extends Plugin
 		$params['userrole'] = 'member';
 
 		# check if another user role has been selected in the plugin configurations
-		if(isset($settings['plugins']['register']['userrole']) && $settings['plugins']['register']['userrole'] != '')
+		if(isset($pluginSettings['userrole']) && $pluginSettings['userrole'] != '')
 		{
-			$params['userrole'] = $settings['plugins']['register']['userrole'];
+			$params['userrole'] = $pluginSettings['userrole'];
 		}
 
 		# get userroles for validation
-		$userroles 		= $this->container['acl']->getRoles();
+		$userroles 		= $this->container->get('acl')->getRoles();
+
+		$validation = $validate->newUser($params, $userroles);
 
 		# validate user 
-		if($validate->newUser($params, $userroles))
+		if($validation !== true)
 		{
-			# generate confirmation token 
-			$created 		= date("Y-m-d H:i:s");
-			$optintoken 	= bin2hex(random_bytes(32));
+			$_SESSION['errors'] = $validate->returnFirstValidationErrors($validation);
 
-			$userdata 				= $params;
-			$userdata['username']	= '_' . $params['username'];
-			$userdata['created']	= $created;
-			$userdata['optintoken']	= $optintoken;
+			$flash->addMessage('error', 'Please check your input and try again');
 			
-			# create user
-			$username = $user->createUser($userdata);
-
-			if($username)
-			{
-				$send = $this->sendConfirmationEmail($settings, $userdata, $base_url);
-
-				if($send !== true)
-				{
-					$twig   = $this->getTwig();
-					$loader = $twig->getLoader();	
-					$loader->addPath(__DIR__ . '/templates');
-
-					$this->addCSS('/register/css/register.css');
-
-					return $twig->render($response, '/registererror.twig', ['error' => ['title' => 'Error with Confirmation Mail', 'message' => 'Sorry, something went wrong! We created your user account, but we could not send the confirmation mail with the registration link. You cannot login without this confirmation. Please contact the owner of the website and tell him your username so he can solve the problem.']]);
-				}
-
-				# send mail to admin if feature is activated
-				if(isset($settings['plugins']['register']['notifyafterregistration']) && $settings['plugins']['register']['notifyafterregistration'])
-				{
-					$send = $this->sendRegisterNotification($settings, $userdata);
-				}
-
-				# we need a temporary entry in the session for the subscriber plugin
-				$_SESSION['tmp_user'] = $username;
-
-				# check the next registerstep (next route-name)
-				$registersteps = $settings['registersteps'];
-				asort($registersteps);
-
-				$keys 	= array_keys($registersteps);
-				$index 	= array_search("register.show",$keys);
-				$next 	= $index+1;
-				
-				$nextstep = 'register.welcome';
-				if(isset($keys[$next]))
-				{
-					$nextstep = $keys[$next];
-				}
-
-				return $response->withRedirect($this->container['router']->pathFor($nextstep));
-			}
-
-			$this->container['flash']->addMessage('error', 'We could not create the user, please check if settings folder is writable.');
+			return $response->withHeader('Location', $router->urlFor('register.show'))->withStatus(302);
 		}
-		else
+
+		# generate confirmation token 
+		$created 		= date("Y-m-d H:i:s");
+		$optintoken 	= bin2hex(random_bytes(32));
+
+		$userdata 				= $params;
+		$userdata['username']	= '_' . $params['username'];
+		$userdata['created']	= $created;
+		$userdata['optintoken']	= $optintoken;
+
+		$settings = $this->getSettings();
+		
+		# create user
+		$username = $user->createUser($userdata);
+
+		if(!$username)
 		{
-			if(isset($_SESSION['errors']))
-			{
-				# we have to fix the error reporting here, because standard user-validation returns error without pluginname (not visible in form then)
-				$errors = $_SESSION['errors'];
-				unset($_SESSION['errors']);
-				$_SESSION['errors']['register'] = $errors; 
-			}
-			$this->container['flash']->addMessage('error', 'Please check your input and try again');
+			$flash->addMessage('error', 'We could not create the user, please check if settings folder is writable.');
+
+			return $response->withHeader('Location', $router->urlFor('register.show'))->withStatus(302);
 		}
 
-		return $response->withRedirect($this->container['router']->pathFor('register.show'));
+		$send = $this->sendConfirmationEmail($pluginSettings, $userdata, $base_url);
+
+		if($send !== true)
+		{
+			$twig   = $this->getTwig();
+			$loader = $twig->getLoader();
+			$loader->addPath(__DIR__ . '/templates');
+
+			$this->addCSS('/register/css/register.css');
+
+			return $twig->render($response, '/registererror.twig', [
+				'title' 	=> 'Error with Confirmation Mail', 
+				'message' 	=> 'Sorry, something went wrong! We created your user account, but we could not send the confirmation mail with the registration link. You cannot login without this confirmation. Please contact the owner of the website and tell him your username so he can solve the problem.'
+			]);
+		}
+
+		# send mail to admin if feature is activated
+		if(isset($pluginSettings['notifyafterregistration']) && $pluginSettings['notifyafterregistration'])
+		{
+			$send = $this->sendRegisterNotification($pluginSettings, $userdata);
+		}
+
+		# show message only on success, otherwise show neutral message
+
+		return $response->withHeader('Location', $router->urlFor('register.welcome'))->withStatus(302);
   	}
 
 	# show page to send confirmation email again
-	public function requestConfirmationEmail($request, $response, $args)
+	public function requestConfirmationEmail(Request $request, Response $response, $args)
 	{
-		# redirect if logged in
-		if(isset($_SESSION['user']))
-		{
-			return $this->container['response']->withRedirect($this->container['router']->pathFor('user.account'));
-		}
+		$settings = $this->getSettings();
 
-		$settings 			= $this->getSettings();
+		$authenticated = ( 
+				(isset($_SESSION['username'])) && 
+				(isset($_SESSION['login']))
+			)
+			? true : false;
+
+		if($authenticated)
+		{			
+			$router = $this->container->get('routeParser');
+
+			return $response->withHeader('Location', $router->urlFor('user.account'))->withStatus(302);
+		}
 
 		$twig   			= $this->getTwig();  // get the twig-object
 		$loader 			= $twig->getLoader();  // get the twig-template-loader	
@@ -317,22 +344,32 @@ class Register extends Plugin
 
 		$this->addCSS('/register/css/register.css');
 
-		return $twig->render($response, '/registeremail.twig', ['settings' => $settings]);
+		return $twig->render($response, '/confirmationrequest.twig', [
+			'settings' => $settings,
+			'base_url' => $this->urlinfo['baseurl']
+		]);
 	}
 
 	# send the confirmation email again
-	public function sendConfirmationEmailAgain($request, $response, $args)
+	public function sendConfirmationEmailAgain(Request $request, Response $response, $args)
 	{
-		# redirect if logged in
-		if(isset($_SESSION['user']))
+		$settings 		= $this->getSettings();
+		$router 		= $this->container->get('routeParser');
+		$flash 			= $this->container->get('flash');
+
+		$authenticated = ( 
+				(isset($_SESSION['username'])) && 
+				(isset($_SESSION['login']))
+			)
+			? true : false;
+
+		if($authenticated)
 		{
-			return $this->container['response']->withRedirect($this->container['router']->pathFor('user.account'));
+			return $response->withHeader('Location', $router->urlFor('user.account'))->withStatus(302);
 		}
 
-		$params 		= $request->getParams();
-		$settings 		= $this->getSettings();
-		$uri 			= $request->getUri()->withUserInfo('');
-		$base_url		= $uri->getBaseUrl();
+		$params 		= $request->getParsedBody();
+		$base_url		= $this->urlinfo['baseurl'];
 
 		# check if input is valid email
 		$validate		= new Validation();
@@ -341,29 +378,39 @@ class Register extends Plugin
 		$validator->rule('email', 'confirmationmail');
 		if(!$validator->validate())
 		{
-			$this->container['flash']->addMessage('error', 'Please enter a valid email.');
-			return $response->withRedirect($this->container['router']->pathFor('register.requestemail'));
+			$flash->addMessage('error', 'Please enter a valid email.');
+			return $response->withHeader('Location', $router->urlFor('register.requestemail'))->withStatus(302);
 		}
 
 		$user			= new User();
 
 		# this searches over all existing users. You can improve performance with a separate function that only checks users starting with _
 		$registeredUser = $user->findUsersByEmail($params['confirmationmail']);
-		if(!$registeredUser)
+		
+		if(!$registeredUser or (count($registeredUser) > 1) )
 		{
-			$this->container['flash']->addMessage('error', 'We did not find a user with a valid optin token.');
+			$flash->addMessage('error', 'We did not find a user with a valid optin token.');
 
-			return $response->withRedirect($this->container['router']->pathFor('register.requestemail'));
+			return $response->withHeader('Location', $router->urlFor('register.requestemail'))->withStatus(302);
 		}
 
-		if(!isset($registeredUser['optintoken']) OR !$registeredUser['optintoken'])
+		if(!$user->setUser($registeredUser[0]))
 		{
-			$this->container['flash']->addMessage('error', 'We did not find a user with a valid optin token.');
+			$flash->addMessage('error', 'We did not find a user with a valid optin token.');
 
-			return $response->withRedirect($this->container['router']->pathFor('register.requestemail'));
+			return $response->withHeader('Location', $router->urlFor('register.requestemail'))->withStatus(302);
 		}
 
-		$send = $this->sendConfirmationEmail($settings, $registeredUser, $base_url);
+		$userdata = $user->getUserData();
+
+		if(!isset($userdata['optintoken']) OR !$userdata['optintoken'])
+		{
+			$flash->addMessage('error', 'We did not find a user with a valid optin token.');
+
+			return $response->withHeader('Location', $router->urlFor('register.requestemail'))->withStatus(302);
+		}
+
+		$send = $this->sendConfirmationEmail($settings['plugins']['register'], $userdata, $base_url);
 
 		if($send !== true)
 		{
@@ -373,24 +420,29 @@ class Register extends Plugin
 
 			$this->addCSS('/register/css/register.css');
 
-			return $twig->render($response, '/registererror.twig', ['error' => ['title' => 'Error With Confirmation Email', 'message' => 'Sorry, something went wrong! We created your user account, but we could not send the confirmation mail with the registration link. You cannot login without this confirmation. Please contact the owner of the website and tell him your username so he can solve the problem.']]);
+			return $twig->render($response, '/errorpage.twig', [
+				'title' 	=> 'Error With Confirmation Email', 
+				'message' 	=> 'Sorry, something went wrong! We created your user account, but we could not send the confirmation mail with the registration link. You cannot login without this confirmation. Please contact the owner of the website and tell him your username so he can solve the problem.'
+			]);
 		}
 
-		return $response->withRedirect($this->container['router']->pathFor('register.welcome'));
+		return $response->withHeader('Location', $router->urlFor('register.welcome'))->withStatus(302);
 	}
 
 	# show welcome page after successful registration
-	public function showWelcome($request, $response, $args)
+	public function showWelcome(Request $request, Response $response, $args)
 	{
-		# redirect if logged in
-		if(isset($_SESSION['user']))
-		{
-			return $this->container['response']->withRedirect($this->container['router']->pathFor('user.account'));
-		}
+		$authenticated = ( 
+				(isset($_SESSION['username'])) && 
+				(isset($_SESSION['login']))
+			)
+			? true : false;
 
-		if(isset($_SESSION['tmp_user']))
-		{
-			unset($_SESSION['tmp_user']);
+		if($authenticated)
+		{			
+			$router = $this->container->get('routeParser');
+
+			return $response->withHeader('Location', $router->urlFor('user.account'))->withStatus(302);
 		}
 
 		if(isset($_SESSION['old']))
@@ -399,16 +451,6 @@ class Register extends Plugin
 		}
 
 		$settings = $this->getSettings();
-
-		# get the registersteps, sort them by value (order), add class active or inactive 
-		$registersteps = $settings['registersteps'];
-		asort($registersteps);
-		$class = 'active';
-		foreach($registersteps as $key => $step)
-		{
-			$registersteps[$key] = $class;
-			if($key == 'register.welcome'){ $class = 'inactive'; }
-		}
 
 		$twig   = $this->getTwig();  // get the twig-object
 		$loader = $twig->getLoader();  // get the twig-template-loader	
@@ -416,93 +458,107 @@ class Register extends Plugin
 
 		$this->addCSS('/register/css/register.css');
 
-		return $twig->render($response, '/registerwelcome.twig', ['settings' => $settings, 'registersteps' => $registersteps]);
+		return $twig->render($response, '/confirmationpage.twig', ['settings' => $settings]);
 	}
 
 	# show page after user confirmed registration with the optin link
-	public function optin($request, $response, $args)
+	public function optin(Request $request, Response $response, $args)
 	{
-		$params = $request->getParams();
+		$params 	= $request->getQueryParams();
+		$router 	= $this->container->get('routeParser');
+		$flash 		= $this->container->get('flash');
+		$settings 	= $this->getSettings();
 
 		# redirect if logged in
-		if(isset($_SESSION['user']))
+		$authenticated = ( 
+				(isset($_SESSION['username'])) && 
+				(isset($_SESSION['login']))
+			)
+			? true : false;
+
+		if($authenticated)
 		{
-			return $response->withRedirect($this->container['router']->pathFor('user.account'));
+			return $response->withHeader('Location', $router->urlFor('user.account'))->withStatus(302);
 		}
 
 		if(!isset($params['optintoken']) OR !isset($params['username']))
 		{
-			$this->container['flash']->addMessage('error', 'We could not confirm your account (missing data). Please try again or contact the administrator.');
-			return $response->withRedirect($this->container['router']->pathFor('auth.show'));
+			$flash->addMessage('error', 'We could not confirm your account (missing data). Please try again or contact the administrator.');
+			return $response->withHeader('Location', $router->urlFor('auth.show'))->withStatus(302);
 		}
 
 		# validate token format
-		if(!strlen($params['optintoken']) == 64 OR !ctype_alnum($params['optintoken']))
+		if( (strlen($params['optintoken']) != 64) OR (!ctype_alnum($params['optintoken'])) )
 		{
-			$this->container['flash']->addMessage('error', 'We could not confirm your account (wrong data). Please contact the administrator.');
-			return $response->withRedirect($this->container['router']->pathFor('auth.show'));
+			$flash->addMessage('error', 'We could not confirm your account (wrong data). Please contact the administrator.');
+			return $response->withHeader('Location', $router->urlFor('auth.show'))->withStatus(302);
 		}
 
-		$settings = $this->getSettings();
+		$storage = new StorageWrapper($settings['storage']);
 
-		$yaml = new WriteYaml();
-
-		$optinuser = $yaml->getYaml('settings' . DIRECTORY_SEPARATOR . 'users', '_' . $params['username'] . '.yaml');
+		$optinuser = $storage->getYaml('settingsFolder', 'users', '_' . $params['username'] . '.yaml');
 
 		if(!$optinuser)
 		{
-			$this->container['flash']->addMessage('error', 'We did not find that user. Please try again or contact the administrator.');
-			return $response->withRedirect($this->container['router']->pathFor('auth.show'));
+			$flash->addMessage('error', 'We did not find that user. Please try again or contact the administrator.');
+			return $response->withHeader('Location', $router->urlFor('auth.show'))->withStatus(302);
 		}
 
 		if($optinuser['optintoken'] != $params['optintoken'])
 		{
-			$this->container['flash']->addMessage('error', 'We could not confirm your account (wrong token). Please try again or contact the administrator.');
-			return $response->withRedirect($this->container['router']->pathFor('auth.show'));
+			$flash->addMessage('error', 'We could not confirm your account (wrong token). Please try again or contact the administrator.');
+			return $response->withHeader('Location', $router->urlFor('auth.show'))->withStatus(302);
 		}
 
 		$optinuser['username'] 		= ($optinuser['username'][0] == '_') ? ltrim($optinuser['username'], '_') : $optinuser['username'];
 		$optinuser['optintoken'] 	= false;
 
-		$yaml->updateYaml('settings' . DIRECTORY_SEPARATOR . 'users', '_' . $optinuser['username'] . '.yaml', $optinuser);
-		$yaml->renameFile('settings' . DIRECTORY_SEPARATOR . 'users', '_' . $optinuser['username'] . '.yaml', $optinuser['username'] . '.yaml');
+		$storage->updateYaml('settingsFolder', 'users', '_' . $optinuser['username'] . '.yaml', $optinuser);
+		$storage->renameFile('settingsFolder', 'users', '_' . $optinuser['username'] . '.yaml', $optinuser['username'] . '.yaml');
 
 		# send confirmation notification to admin, if activated
 		if(isset($settings['plugins']['register']['notifyafterconfirmation']) && $settings['plugins']['register']['notifyafterconfirmation'])
 		{
-			$send = $this->sendConfirmationNotification($settings, $optinuser['username']);
+			$send = $this->sendConfirmationNotification($settings['plugins']['register'], $optinuser);
 		}
 
 		# dispatch the confirmation for subscriber plugin so invoices are send
-		$this->container->dispatcher->dispatch('onUserConfirmed', new OnUserConfirmed($optinuser));
+		$dispatcher = $this->container->get('dispatcher');
+		$dispatcher->dispatch(new OnUserConfirmed($optinuser), 'onUserConfirmed');
 
 		if(isset($_SESSION['old']))
 		{
 			unset($_SESSION['old']);
 		}
 
-		$this->container['flash']->addMessage('info', 'Your account is confirmed now. Please login.');
-		return $response->withRedirect($this->container['router']->pathFor('auth.show'));
+		$flash->addMessage('info', 'Your account is confirmed now. Please login.');
+		return $response->withHeader('Location', $router->urlFor('auth.show'))->withStatus(302);
 	}
 
-	private function sendConfirmationEmail($settings, $userdata, $base_url)
+	private function sendConfirmationEmail($pluginSettings, $userdata, $base_url)
 	{
 		# we have to dispatch onTwigLoaded to get the mail-function from the mail-plugin into the container
-		$this->container->dispatcher->dispatch('onTwigLoaded');
+		$dispatcher = $this->container->get('dispatcher');
+		$dispatcher->dispatch(new OnTwigLoaded(false), 'onTwigLoaded');
 
-		# send confirmation mail
 		$send = false; 
 					
-		if(isset($this->container['mail']))
+		if($this->container->has('mail'))
 		{
+		    $mail 		= $this->container->get('mail');
+
 			$username 	= ($userdata['username'][0] == '_') ? ltrim($userdata['username'], '_') : $userdata['username'];
 
 			# create body lines for html and no html mails
-			$body1 		= $settings['plugins']['register']['mailsalutation'] . " " . $username . ",";
-			$body2 		= "\n\n" . $settings['plugins']['register']['mailbeforelink'];
+			$body1 		= $pluginSettings['mailsalutation'] . " " . $username . ",";
+			$body2 		= "\n\n" . $pluginSettings['mailbeforelink'];
 			$body3 		= "\n\n" . $base_url . "/tm/registeroptin?optintoken=" . $userdata['optintoken'] . "&username=" . $username;
 			$body3html 	= "\n\n" . "[Registration Link](" . $base_url . "/tm/registeroptin?optintoken=" . $userdata['optintoken'] . "&username=" . $username . ")";
-			$body4 		= "\n\n" . $settings['plugins']['register']['mailafterlink'];
+			$body4 		= "";
+			if(isset($pluginSettings['mailafterlink']) && $pluginSettings['mailafterlink'] && $pluginSettings['mailafterlink'] != '')
+			{
+				$body4 		= "\n\n" . $pluginSettings['mailafterlink'];
+			}
 
 			# body without html
 			$body 		= $body1 . $body2 . $body3 . $body4;
@@ -511,13 +567,10 @@ class Register extends Plugin
 			$bodyhtml 	= $body1 . $body2 . $body3html . $body4;
 			$bodyhtml 	= $this->markdownToHtml($bodyhtml);
 
-			# setup and send mail
-			$mail = $this->container['mail'];
 			$mail->ClearAllRecipients();
-
 			$mail->addAdress($userdata['email']);
-			$mail->addReplyTo($settings['plugins']['register']['mailreplyto'], $settings['plugins']['register']['mailreplytoname']);
-			$mail->setSubject($settings['plugins']['register']['mailsubject']);
+			$mail->addReplyTo($pluginSettings['mailreplyto'], $pluginSettings['mailreplytoname']);
+			$mail->setSubject($pluginSettings['mailsubject']);
 			$mail->setBody($bodyhtml);
 			$mail->setAltBody($body);
 
@@ -527,19 +580,17 @@ class Register extends Plugin
 		return $send;
 	}
 
-	private function sendRegisterNotification($settings, $userdata)
+	private function sendRegisterNotification($pluginSettings, $userdata)
 	{
-		# do not dispatch twig here because it has been dispatched already
-		if(!isset($this->container['mail']))
-		{
-			$this->container->dispatcher->dispatch('onTwigLoaded');
-		}
+		# we have to dispatch onTwigLoaded to get the mail-function from the mail-plugin into the container
+		$dispatcher = $this->container->get('dispatcher');
+		$dispatcher->dispatch(new OnTwigLoaded(false), 'onTwigLoaded');
 
-		# send confirmation mail
 		$send = false; 
-					
-		if(isset($this->container['mail']))
+
+		if($this->container->has('mail'))
 		{
+			$mail 			= $this->container->get('mail');
 			$username 		= ($userdata['username'][0] == '_') ? ltrim($userdata['username'], '_') : $userdata['username'];
 			$emailparts		= explode("@", $userdata['email']);
 			$emaildomain	= isset($emailparts[1]) ? $emailparts[1] : 'unknown';
@@ -547,11 +598,8 @@ class Register extends Plugin
 			# create body lines for html and no html mails
 			$body 		= "The new user " . $username . " has registered with the domain " . $emaildomain . ". We are waiting for the confirmation now.";
 
-			# setup and send mail
-			$mail = $this->container['mail'];
 			$mail->ClearAllRecipients();
-
-			$mail->addAdress($settings['plugins']['register']['mailreplyto']);
+			$mail->addAdress($pluginSettings['mailreplyto']);
 			$mail->setSubject("New user: " . $username);
 			$mail->setBody($body);
 			$mail->setAltBody($body);
@@ -562,27 +610,26 @@ class Register extends Plugin
 		return $send;
 	}
 
-	private function sendConfirmationNotification($settings, $username)
+	private function sendConfirmationNotification($pluginSettings, $userdata)
 	{
 		# we have to dispatch onTwigLoaded to get the mail-function from the mail-plugin into the container
-		if(!isset($this->container['mail']))
-		{
-			$this->container->dispatcher->dispatch('onTwigLoaded');
-		}
+		$dispatcher = $this->container->get('dispatcher');
+		$dispatcher->dispatch(new OnTwigLoaded(false), 'onTwigLoaded');
 
-		# send confirmation mail
 		$send = false; 
 					
-		if(isset($this->container['mail']))
+		if($this->container->has('mail'))
 		{
+			$mail 			= $this->container->get('mail');
+			$username 		= ($userdata['username'][0] == '_') ? ltrim($userdata['username'], '_') : $userdata['username'];
+			$emailparts		= explode("@", $userdata['email']);
+			$emaildomain	= isset($emailparts[1]) ? $emailparts[1] : 'unknown';
+
 			# create body lines for html and no html mails
-			$body 		= "The new user " . $username . " has confirmed his account.";
+			$body 			= "The new user " . $username . " has confirmed his account with the domain " . $emaildomain . ".";
 
-			# setup and send mail
-			$mail = $this->container['mail'];
 			$mail->ClearAllRecipients();
-
-			$mail->addAdress($settings['plugins']['register']['mailreplyto']);
+			$mail->addAdress($pluginSettings['mailreplyto']);
 			$mail->setSubject("New user: " . $username);
 			$mail->setBody($body);
 			$mail->setAltBody($body);
@@ -595,32 +642,30 @@ class Register extends Plugin
 
 	# check registered but unconfirmed users, send mail or delete. Triggered once a day by pseudo-cronjob
 	private function checkRegisteredUsers($baseUrl)
-	{		
-		$userDir = __DIR__ . '/../../settings/users';
-				
-		# check if users directory exists 
-		if(!is_dir($userDir)){ return array(); }
-		
+	{	
+		$pluginSettings = $this->getPluginSettings();
+
 		# get interval for reminder
-		$remind = ( isset($this->settings['plugins']['register']['reminduser']) ) ? $this->settings['plugins']['register']['reminduser'] : 5;
+		$remind = ( isset($pluginSettings['reminduser']) ) ? $pluginSettings['reminduser'] : 5;
 		$remind = 'P'.$remind.'D';
 
 		# get interval for delete
-		$delete = ( isset($this->settings['plugins']['register']['deleteuser']) ) ? $this->settings['plugins']['register']['deleteuser'] : 5;
+		$delete = ( isset($pluginSettings['deleteuser']) ) ? $pluginSettings['deleteuser'] : 5;
 		$delete = 'P'.$delete.'D';
-
-		# get all user files 
-		$users = array_diff(scandir($userDir), array('..', '.'));
 		
 		$userModel = new User();
+		$usernames = $userModel->getAllUsers();
 
-		foreach($users as $key => $user)
+		foreach($usernames as $key => $username)
 		{
-			if($user[0] == '_')
+			if($username[0] == '_')
 			{
-				$user = str_replace('.yaml', '', $user);
+				if(!$userModel->setUserWithPassword($username))
+				{
+					continue;
+				}
 
-				$userdata 		= $userModel->getUser($user);
+				$userdata 		= $userModel->getUserData();
 
 				# the created as DateTime
 				$created 		= new \DateTime($userdata['created']);
@@ -638,25 +683,25 @@ class Register extends Plugin
 				# if you have not a single visit on your page that day, then this won't work
 				if($rememberuser == $nowFormat)
 				{
-					$send = $this->sendConfirmationEmail($this->settings, $userdata, $baseUrl);
+					$send = $this->sendConfirmationEmail($pluginSettings, $userdata, $baseUrl);
 
-					$userdata['optinreminder'] = $now->format('Y-m-d H:i:s');
+					$userModel->setValue('optinreminder', $now->format('Y-m-d H:i:s'));
 
 					if($send !== true)
 					{
-						$userdata['optinreminder'] .= ' Could not send email.';
+						$userModel->setValue('optinreminder', $now->format('Y-m-d H:i:s') . ' Could not send email.');
 					}
 
 					# update the user with the reminder date
-					$userModel->updateUser($userdata);
+					$userModel->updateUser();
 				}
 
 				if($deleteuser <= $nowFormat)
 				{
-					$userModel->deleteUser($user);
+					$userModel->deleteUser();
 
 					# dispatch the deletion so subscriptions can be deleted
-					$this->container->dispatcher->dispatch('onUserDeleted', new OnUserDeleted($userdata));
+					$this->container->get('dispatcher')->dispatch(new OnUserDeleted($userdata), 'onUserDeleted');
 				}
 			}
 		}
