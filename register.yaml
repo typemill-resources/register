@@ -1,5 +1,5 @@
 name: Register
-version: 2.0.0
+version: 2.0.1
 description: "Add a public registration form under /tm/register and let users register as member. Optionally only users with valid gumroad licence key can register."
 author: "Trendschau"
 homepage: "https://plugins.typemill.net/register"
