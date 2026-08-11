@@ -1,12 +1,12 @@
 # Register Plugin
 
-The plugin adds a public registration form with double opt in to your Typemill Website (/tm/register). You can optionally activate a gumroad licence for selling access. It requires the email plugin to work. To utilize this plugin, ensure you have a [MAKER-license](https://typemill.net/license/buy).
+The plugin adds a public registration form with double opt in to your Typemill Website (/tm/register). You can optionally activate a gumroad licence for selling access. It uses the mail function provided by Typemill core, so make sure you have configured the system mail settings. To utilize this plugin, ensure you have a [MAKER-license](https://typemill.net/license/buy).
 
 The plugin has been written by [trendschau.net](https://trendschau.net) (Sebastian Schürmanns). Gumroad feature added by [Andreas Zettl](https://azettl.net).
 
 ## How it works 
 
-Before you install the register plugin, please install and configure the [mail plugin](https://plugins.typemill.net/mail). 
+The register plugin uses the mail function that is built into Typemill core. Please configure the mail settings in your Typemill system settings before you use this plugin. 
 
 To install the register plugin, simply download and unzip the plugin-folder, then upload the files to the plugin folder of your Typemill installation and fill out the forms in the plugin settings. After that you can reach the public registration form with the path /tm/register.
 
@@ -137,6 +137,14 @@ That is the whole magic, and yes, this is flexible as hell! Again, just check th
 
 
 ## Updates
+
+### Version 2.1.0
+
+* Fixed PHP 8.2–8.5 compatibility issues.
+* Removed the dependency on the external mail plugin; the register plugin now uses the mail function built into Typemill core.
+* Hardened the Gumroad licence verification response handling.
+* Hardened the burner email list check.
+* Fixed the error page template path and added the missing `base_url` variable.
 
 ### Version 2.0.0
 

@@ -8,7 +8,6 @@ use Typemill\Plugin;
 use Typemill\Models\Validation;
 use Typemill\Models\User;
 use Typemill\Models\StorageWrapper;
-use Typemill\Events\OnTwigLoaded;
 use Typemill\Events\OnUserConfirmed;
 use Typemill\Events\OnUserDeleted;
 
@@ -35,37 +34,37 @@ class Register extends Plugin
 			[
 				'httpMethod' 	=> 'get', 
 				'route' 		=> '/tm/register', 
-				'class' 		=> 'Plugins\Register\Register:showRegistrationForm', 
+				'class' 		=> 'Plugins\register\Register:showRegistrationForm', 
 				'name' 			=> 'register.show'
 			],
 			[
 				'httpMethod' 	=> 'post', 
 				'route' 		=> '/tm/register', 
-				'class' 		=> 'Plugins\Register\Register:createUser', 
+				'class' 		=> 'Plugins\register\Register:createUser', 
 				'name' 			=> 'register.create'
 			],
 			[
 				'httpMethod' 	=> 'get', 
 				'route' 		=> '/tm/registerwelcome', 
-				'class' 		=> 'Plugins\Register\Register:showWelcome', 
+				'class' 		=> 'Plugins\register\Register:showWelcome', 
 				'name' 			=> 'register.welcome'
 			],
 			[
 				'httpMethod' 	=> 'get', 
 				'route' 		=> '/tm/registeroptin', 
-				'class' 		=> 'Plugins\Register\Register:optin', 
+				'class' 		=> 'Plugins\register\Register:optin', 
 				'name' 			=> 'register.optin'
 			],
 			[
 				'httpMethod' 	=> 'get', 
 				'route' 		=> '/tm/registeremail', 
-				'class' 		=> 'Plugins\Register\Register:requestConfirmationEmail', 
+				'class' 		=> 'Plugins\register\Register:requestConfirmationEmail', 
 				'name' 			=> 'register.requestemail'
 			],
 			[
 				'httpMethod' 	=> 'post', 
 				'route' 		=> '/tm/registeremail', 
-				'class' 		=> 'Plugins\Register\Register:sendConfirmationEmailAgain', 
+				'class' 		=> 'Plugins\register\Register:sendConfirmationEmailAgain', 
 				'name' 			=> 'register.sendemail'
 			],
 		];
@@ -144,10 +143,16 @@ class Register extends Plugin
 	public function createUser(Request $request, Response $response, $args)
 	{
 		$params = $request->getParsedBody();
-		$params = $this->validateParams($params);
-
 		$router = $this->container->get('routeParser');
 		$flash 	= $this->container->get('flash');
+
+		if(!is_array($params))
+		{
+			$flash->addMessage('error', 'Please check your input and try again');
+			return $response->withHeader('Location', $router->urlFor('register.show'))->withStatus(302);
+		}
+
+		$params = $this->validateParams($params);
 
 		if(!$params)
 		{
@@ -206,7 +211,7 @@ class Register extends Plugin
 
 				$gumroad_result_json = json_decode($gumroad_curl_result);
 
-				if($gumroad_result_json->success != 'true')
+				if(!is_object($gumroad_result_json) || !property_exists($gumroad_result_json, 'success') || !$gumroad_result_json->success)
 				{
 					$flash->addMessage('error', 'Incorrect Gumroad License Key');
 					return $response->withHeader('Location', $router->urlFor('register.show'))->withStatus(302);			
@@ -303,9 +308,10 @@ class Register extends Plugin
 
 			$this->addCSS('/register/css/register.css');
 
-			return $twig->render($response, '/registererror.twig', [
+			return $twig->render($response, '/errorpage.twig', [
 				'title' 	=> 'Error with Confirmation Mail', 
-				'message' 	=> 'Sorry, something went wrong! We created your user account, but we could not send the confirmation mail with the registration link. You cannot login without this confirmation. Please contact the owner of the website and tell him your username so he can solve the problem.'
+				'message' 	=> 'Sorry, something went wrong! We created your user account, but we could not send the confirmation mail with the registration link. You cannot login without this confirmation. Please contact the owner of the website and tell him your username so he can solve the problem.',
+				'base_url'	=> $base_url
 			]);
 		}
 
@@ -370,6 +376,12 @@ class Register extends Plugin
 
 		$params 		= $request->getParsedBody();
 		$base_url		= $this->urlinfo['baseurl'];
+
+		if(!is_array($params))
+		{
+			$flash->addMessage('error', 'Please enter a valid email.');
+			return $response->withHeader('Location', $router->urlFor('register.requestemail'))->withStatus(302);
+		}
 
 		# check if input is valid email
 		$validate		= new Validation();
@@ -510,7 +522,7 @@ class Register extends Plugin
 			return $response->withHeader('Location', $router->urlFor('auth.show'))->withStatus(302);
 		}
 
-		$optinuser['username'] 		= ($optinuser['username'][0] == '_') ? ltrim($optinuser['username'], '_') : $optinuser['username'];
+		$optinuser['username'] 		= str_starts_with($optinuser['username'], '_') ? ltrim($optinuser['username'], '_') : $optinuser['username'];
 		$optinuser['optintoken'] 	= false;
 
 		$storage->updateYaml('settingsFolder', 'users', '_' . $optinuser['username'] . '.yaml', $optinuser);
@@ -537,107 +549,70 @@ class Register extends Plugin
 
 	private function sendConfirmationEmail($pluginSettings, $userdata, $base_url)
 	{
-		# we have to dispatch onTwigLoaded to get the mail-function from the mail-plugin into the container
-		$dispatcher = $this->container->get('dispatcher');
-		$dispatcher->dispatch(new OnTwigLoaded(false), 'onTwigLoaded');
-
-		$send = false; 
-					
-		if($this->container->has('mail'))
+		if(!$this->container->has('mail'))
 		{
-		    $mail 		= $this->container->get('mail');
-
-			$username 	= ($userdata['username'][0] == '_') ? ltrim($userdata['username'], '_') : $userdata['username'];
-
-			# create body lines for html and no html mails
-			$body1 		= $pluginSettings['mailsalutation'] . " " . $username . ",";
-			$body2 		= "\n\n" . $pluginSettings['mailbeforelink'];
-			$body3 		= "\n\n" . $base_url . "/tm/registeroptin?optintoken=" . $userdata['optintoken'] . "&username=" . $username;
-			$body3html 	= "\n\n" . "[Registration Link](" . $base_url . "/tm/registeroptin?optintoken=" . $userdata['optintoken'] . "&username=" . $username . ")";
-			$body4 		= "";
-			if(isset($pluginSettings['mailafterlink']) && $pluginSettings['mailafterlink'] && $pluginSettings['mailafterlink'] != '')
-			{
-				$body4 		= "\n\n" . $pluginSettings['mailafterlink'];
-			}
-
-			# body without html
-			$body 		= $body1 . $body2 . $body3 . $body4;
-					
-			# body with html
-			$bodyhtml 	= $body1 . $body2 . $body3html . $body4;
-			$bodyhtml 	= $this->markdownToHtml($bodyhtml);
-
-			$mail->ClearAllRecipients();
-			$mail->addAdress($userdata['email']);
-			$mail->addReplyTo($pluginSettings['mailreplyto'], $pluginSettings['mailreplytoname']);
-			$mail->setSubject($pluginSettings['mailsubject']);
-			$mail->setBody($bodyhtml);
-			$mail->setAltBody($body);
-
-			$send = $mail->send();
+			return false;
 		}
-	
-		return $send;
+
+		$mail 		= $this->container->get('mail');
+		$username 	= str_starts_with($userdata['username'], '_') ? ltrim($userdata['username'], '_') : $userdata['username'];
+
+		# create body lines for html and no html mails
+		$body1 		= $pluginSettings['mailsalutation'] . " " . $username . ",";
+		$body2 		= "\n\n" . $pluginSettings['mailbeforelink'];
+		$body3 		= "\n\n" . $base_url . "/tm/registeroptin?optintoken=" . $userdata['optintoken'] . "&username=" . $username;
+		$body3html 	= "\n\n" . "[Registration Link](" . $base_url . "/tm/registeroptin?optintoken=" . $userdata['optintoken'] . "&username=" . $username . ")";
+		$body4 		= "";
+		if(isset($pluginSettings['mailafterlink']) && $pluginSettings['mailafterlink'] && $pluginSettings['mailafterlink'] != '')
+		{
+			$body4 		= "\n\n" . $pluginSettings['mailafterlink'];
+		}
+
+		# body without html
+		$body 		= $body1 . $body2 . $body3 . $body4;
+				
+		# body with html
+		$bodyhtml 	= $body1 . $body2 . $body3html . $body4;
+		$bodyhtml 	= $this->markdownToHtml($bodyhtml);
+
+		$replyTo 		= isset($pluginSettings['mailreplyto']) ? $pluginSettings['mailreplyto'] : null;
+		$replyToName 	= isset($pluginSettings['mailreplytoname']) ? $pluginSettings['mailreplytoname'] : null;
+
+		return $mail->send($userdata['email'], $pluginSettings['mailsubject'], $bodyhtml, $replyTo, $replyToName, $body);
 	}
 
 	private function sendRegisterNotification($pluginSettings, $userdata)
 	{
-		# we have to dispatch onTwigLoaded to get the mail-function from the mail-plugin into the container
-		$dispatcher = $this->container->get('dispatcher');
-		$dispatcher->dispatch(new OnTwigLoaded(false), 'onTwigLoaded');
-
-		$send = false; 
-
-		if($this->container->has('mail'))
+		if(!$this->container->has('mail'))
 		{
-			$mail 			= $this->container->get('mail');
-			$username 		= ($userdata['username'][0] == '_') ? ltrim($userdata['username'], '_') : $userdata['username'];
-			$emailparts		= explode("@", $userdata['email']);
-			$emaildomain	= isset($emailparts[1]) ? $emailparts[1] : 'unknown';
-
-			# create body lines for html and no html mails
-			$body 		= "The new user " . $username . " has registered with the domain " . $emaildomain . ". We are waiting for the confirmation now.";
-
-			$mail->ClearAllRecipients();
-			$mail->addAdress($pluginSettings['mailreplyto']);
-			$mail->setSubject("New user: " . $username);
-			$mail->setBody($body);
-			$mail->setAltBody($body);
-
-			$send = $mail->send();
+			return false;
 		}
-	
-		return $send;
+
+		$mail 			= $this->container->get('mail');
+		$username 		= str_starts_with($userdata['username'], '_') ? ltrim($userdata['username'], '_') : $userdata['username'];
+		$emailparts		= explode("@", $userdata['email']);
+		$emaildomain	= isset($emailparts[1]) ? $emailparts[1] : 'unknown';
+
+		$body 			= "The new user " . $username . " has registered with the domain " . $emaildomain . ". We are waiting for the confirmation now.";
+
+		return $mail->send($pluginSettings['mailreplyto'], "New user: " . $username, $body);
 	}
 
 	private function sendConfirmationNotification($pluginSettings, $userdata)
 	{
-		# we have to dispatch onTwigLoaded to get the mail-function from the mail-plugin into the container
-		$dispatcher = $this->container->get('dispatcher');
-		$dispatcher->dispatch(new OnTwigLoaded(false), 'onTwigLoaded');
-
-		$send = false; 
-					
-		if($this->container->has('mail'))
+		if(!$this->container->has('mail'))
 		{
-			$mail 			= $this->container->get('mail');
-			$username 		= ($userdata['username'][0] == '_') ? ltrim($userdata['username'], '_') : $userdata['username'];
-			$emailparts		= explode("@", $userdata['email']);
-			$emaildomain	= isset($emailparts[1]) ? $emailparts[1] : 'unknown';
-
-			# create body lines for html and no html mails
-			$body 			= "The new user " . $username . " has confirmed his account with the domain " . $emaildomain . ".";
-
-			$mail->ClearAllRecipients();
-			$mail->addAdress($pluginSettings['mailreplyto']);
-			$mail->setSubject("New user: " . $username);
-			$mail->setBody($body);
-			$mail->setAltBody($body);
-
-			$send = $mail->send();
+			return false;
 		}
-	
-		return $send;
+
+		$mail 			= $this->container->get('mail');
+		$username 		= str_starts_with($userdata['username'], '_') ? ltrim($userdata['username'], '_') : $userdata['username'];
+		$emailparts		= explode("@", $userdata['email']);
+		$emaildomain	= isset($emailparts[1]) ? $emailparts[1] : 'unknown';
+
+		$body 			= "The new user " . $username . " has confirmed his account with the domain " . $emaildomain . ".";
+
+		return $mail->send($pluginSettings['mailreplyto'], "New user: " . $username, $body);
 	}
 
 	# check registered but unconfirmed users, send mail or delete. Triggered once a day by pseudo-cronjob
@@ -658,7 +633,7 @@ class Register extends Plugin
 
 		foreach($usernames as $key => $username)
 		{
-			if($username[0] == '_')
+			if(str_starts_with($username, '_'))
 			{
 				if(!$userModel->setUserWithPassword($username))
 				{
@@ -712,14 +687,33 @@ class Register extends Plugin
 	{
 		$mailparts = explode("@", $email);
 
- 		if(file_exists(__DIR__ . DIRECTORY_SEPARATOR . 'burnerlist.txt'))
+		if(!isset($mailparts[1]))
 		{
-			# read and return the file
-			$burnerlist = unserialize(file_get_contents(__DIR__ . DIRECTORY_SEPARATOR . 'burnerlist.txt'));
-			if(isset($burnerlist[$mailparts[1]]))
-			{
-				return true;
-			}
+			return false;
+		}
+
+		$burnerfile = __DIR__ . DIRECTORY_SEPARATOR . 'burnerlist.txt';
+
+  		if(!file_exists($burnerfile))
+		{
+			return false;
+		}
+
+		$burnercontent = file_get_contents($burnerfile);
+		if($burnercontent === false)
+		{
+			return false;
+		}
+
+		$burnerlist = unserialize($burnercontent);
+		if(!is_array($burnerlist))
+		{
+			return false;
+		}
+
+		if(isset($burnerlist[$mailparts[1]]))
+		{
+			return true;
 		}
 
 		return false;

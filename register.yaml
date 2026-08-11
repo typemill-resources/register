@@ -1,11 +1,10 @@
 name: Register
-version: 2.0.1
+version: 2.1.0
 description: "Add a public registration form under /tm/register and let users register as member. Optionally only users with valid gumroad licence key can register."
 author: "Trendschau"
 homepage: "https://plugins.typemill.net/register"
+repo: "https://github.com/typemill-resources/register"
 license: "MAKER"
-dependencies: 
-  - mail
 
 settings:
   registerheadline: "Register now!"
@@ -40,7 +39,7 @@ forms:
 
     registrationform:
       type: fieldset
-      legend: "FRONTEND REGISTRATION FORM"
+      legend: "Frontend Registration Form"
       fields:
 
         registerheadline:
@@ -73,7 +72,7 @@ forms:
 
     confirmationpage:
       type: fieldset
-      legend: "FRONTEND CONFIRMATION PAGE"
+      legend: "Frontend Confirmation Page"
       fields:
         confirmationheadline:
           type: text
@@ -87,7 +86,7 @@ forms:
 
     confirmationrequestpage:
       type: fieldset
-      legend: "FRONTEND CONFIRMATION REQUEST PAGE"
+      legend: "Frontend Confirmation Request Page"
       fields:
         confirmationrequestlabel: 
           type: text
@@ -109,7 +108,7 @@ forms:
 
     confirmationmail:
       type: fieldset
-      legend: "E-MAIl CONFIRMATION (double opt-in)"
+      legend: "E-mail Confirmation (double opt-in)"
       fields:
         mailreplyto:
           type: email
